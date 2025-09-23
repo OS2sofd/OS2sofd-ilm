@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<div th:replace="~{fragments/empty-navbar :: emptyTopBar}"></div>
+<body class="top-navigation">
+<div id="wrapper">
+	<div id="page-wrapper" class="gray-bg">
+		<div class="wrapper wrapper-content">
+			<div class="m-t middle-box text-center" style="margin-top: -20px">
+				<p style="font-size: 30px;">Vælg login</p>
+                <a th:href="@{/login/saml/employee/{id}(id=${identityProviders[1].loginId})}" class="btn btn-white block full-width m-b">
+                    <div class="row">
+						<div class="col-sm-5 d-md-block">
+							<em class="fa fa-fw fa-5x fa-user left-icon"></em>
+						</div>
+						<div class="col-sm-12 col-md-7 right-text-block">
+							<b class="logo_uni">
+								<h2>
+                                    Medarbejder Login (MitId)
+								</h2>
+							</b>
+                            <p>Til konsulenter</p>
+                        </div>
+					</div>
+				</a>
+                <a th:href="@{/login/saml/leader/{id}(id=${identityProviders[1].loginId})}" class="btn btn-white block full-width m-b">
+					<div class="row">
+						<div class="col-sm-5 d-md-block">
+                            <em class="fa fa-fw fa-5x fa-users left-icon"></em>
+						</div>
+						<div class="col-sm-12 col-md-7 right-text-block">
+							<b>
+								<h2>
+                                    Leder Login (MitId)
+								</h2>
+							</b>
+							<p>Til ledere af virksomheder</p>
+						</div>
+					</div>
+				</a>
+                <a th:href="@{/login/saml/admin/{id}(id=${identityProviders[0].loginId})}" class="btn btn-white block full-width m-b">
+					<div class="row">
+						<div class="col-sm-5 d-md-block">
+                            <em class="fa fa-fw fa-5x fa-id-card-o left-icon"></em>
+						</div>
+						<div class="col-sm-12 col-md-7 right-text-block">
+							<b>
+								<h2>
+									Kommune login
+								</h2>
+							</b>
+                            <p>Til medarbejdere i kommunen</p>
+                        </div>
+					</div>
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+<div th:replace="~{fragments/footer :: scripts}"></div>
+<div th:replace="~{fragments/footer :: footer}"></div>
+<style>
+	.left-icon {
+		margin: 15px auto;
+	}
+
+	@media (min-width: 768px) {
+		.right-text-block {
+			text-align: left;
+		}
+	}
+</style>
+
+</body>
+</html>
+

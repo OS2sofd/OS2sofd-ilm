@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true, texteditor = true, codemirror = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'auditlog')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'auditlog')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="auditLog">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-history"></em> &nbsp; Auditlog</h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                            Her kan der ses de direkte detailer omkring handlingen der er sket
+                            </p>
+                            <div>
+                                <h4>Logdata</h4>
+                            </div>
+                            <form>
+                                <div class="form-group row">
+                                    <label class="col-sm-2 col-form-label">Tidspunkt</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${#temporals.format(auditLog.tts, 'yyyy-MM-dd  HH:mm:ss')}"/>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label class="col-sm-2 col-form-label">Målobjekt</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${auditLog.targetName}"/>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row" th:if="${auditLog.performerName != null}">
+                                    <label class="col-sm-2 col-form-label">Aktør</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${auditLog.performerName}"/>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label class="col-sm-2 col-form-label">Handlingstype</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${auditLog.logAction.message}"/>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label class="col-sm-2 col-form-label">Besked</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${auditLog.message}"/>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row" th:if="${auditLog.details?.detailContent != null}">
+                                    <label class="col-sm-2 col-form-label">Detaljeret beskrivelse</label>
+                                    <div class="col-sm-10">
+                                        <textarea id="detailContent" th:utext="${auditLog.details?.detailContent}"></textarea>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" type="button"  style="width: 150px !important" th:data-id="${auditLog.correlationId}" onclick="auditLogService.findAssociatedLogs(this)">Se associerede logs</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true, texteditor = true, codemirror = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/admin/auditlog/auditlog.js}"></script>
+</body>
+</html>

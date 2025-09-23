@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar}"></div>
+
+        <div class="wrapper wrapper-content">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-car fa-lg"></em> &nbsp; OS2Ilm</h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>Velkommen til OS2Ilm</p>
+                            <br/>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: scripts}"></div>
+
+</body>
+</html>

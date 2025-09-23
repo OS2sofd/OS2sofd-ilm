@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+	<div th:replace="~{fragments/sidebar :: sidemenu}"></div>
+	<div id="page-wrapper" class="gray-bg">
+		<div th:replace="~{fragments/navbar :: topbar}"></div>
+		<div class="wrapper wrapper-content">
+			<div class="row">
+				<div class="col-lg-12">
+					<div class="middle-box text-center animated fadeInDown" style="margin-top: 40px;">
+						<h1 style="font-size: 40px;">Noget gik galt <em class="fa fa-fw fa-frown-o"></em></h1>
+						<div class="error-desc">
+							<th:block th:if="${status == '404'}">
+								<p>
+									Den side du forsøgte at tilgå findes ikke længere - din session kan evt være udløbet, eller
+									du har forsøgt at bruge et bogmærke til en midlertidig side. Prøv igen.
+								</p>
+
+								<p>
+									Hvis du oplever denne fejl i forbindelse med login, og det ikke hjælper at starte forfra,
+									skal du kontakte din it-afdeling og melde fejlen. Nedenunder finder du nogle links til brug i stedet for.
+								</p>
+								<a th:href="@{/templates/employee/my/account}">Hjemmeside</a>
+							</th:block>
+							<th:block th:if="${status != '404'}">
+								<p>
+									Der er opstået en teknisk fejl. Hvis du oplever denne fejl i forbindelse med login, og det ikke hjælper at starte forfra,
+									skal du kontakte din it-afdeling og melde fejlen. Nedenfor er en række links du kan vælge at bruge i stedet.
+								</p>
+								<a th:href="@{/templates/employee/my/account}">Hjemmeside</a>
+							</th:block>
+
+							<small th:if="${timeStamp != null}">
+								<p id="location" style="margin-bottom: 2px;"></p>
+								<p th:text="'Tidspunkt: ' + ${timeStamp}"></p>
+							</small>
+							<th:block th:if="${exception != null}">
+								<h5>Detaljer:</h5>
+								<small th:text="${exception}"></small>
+							</th:block>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div th:replace="~{fragments/footer :: footer}"></div>
+	</div>
+</div>
+<script type="text/javascript" th:src="@{/js/error/error.js}"></script>
+<div th:replace="~{fragments/footer :: scripts}"></div>
+</body>
+</html>

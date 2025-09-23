@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true, checkbox = true, jstree = true, datepicker = true)}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+</head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (leader = true, page = 'approve')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'approve')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="approve">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5 th:text="'Du er ved at godkende ' + ${employee?.name}"><em class="fa fa-fw fa-check"></em></h5>
+                        </div>
+                        <div class="ibox-content">
+                            <div>
+                                <h4>Godkend medarbejder</h4>
+                            </div>
+                            <p>
+                                Angiv om du vil godkende eller afvise medarbejder.
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-1 col-form-label" style="white-space: nowrap"><strong>Godkend</strong></label>
+                                <div class="col-sm-11 align-content-center">
+                                    <input type="radio" name="answer" id="approveEmployee" class="i-checks">
+                                </div>
+                                <label class="col-sm-1 col-form-label" style="white-space: nowrap"><strong>Afvis</strong></label>
+                                <div class="col-sm-11 align-content-center">
+                                    <input type="radio" name="answer" id="denyEmployee" class="i-checks">
+                                </div>
+                            </div>
+                            <div class="elementDiv">
+                                <div class="form-group row">
+                                    <label class="col-sm-1 col-form-label" style="white-space: nowrap"><strong>Aktiveringsperiode</strong></label>
+                                    <div class="col-md-11" style="margin-bottom: 10px; max-width: 29.3%;">
+                                        <select class="form-control d-flex align-content-center" id="activationSelect" >
+                                            <option value="0">Vælg aktiveringsperiode</option>
+                                            <option th:each="activation : ${activations}" th:value="${activation.id}" th:text="${'Fra ' + activation.formattedStartTime + ' til ' + activation.formattedStopTime + ' og weekend: ' + (activation.excludeWeekends ?  'Ikke inkluderet' : 'Inkluderet')}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p th:style="${employee.getBusiness().getPrefix() == null ? 'display: flex' : 'display: none'}">
+                                    Medarbejderens virksomhed mangler et prefix, som er påkrævet for oprettelsen af deres AD-brugerkonto. Opret et prefix her:
+                                </p>
+                                <div class="form-group row" th:style="${employee.getBusiness().getPrefix() == null ? 'display: flex' : 'display: none'}">
+                                    <label class="col-sm-1 col-form-label" style="white-space: nowrap">
+                                        <strong>Virksomhedsprefix</strong>
+                                        <span style="margin-left: 5px; cursor: pointer;" data-toggle="tooltip" data-placement="top" th:attrappend="title=${@cmsMessageBundle.getText('cms.business.prefix')}">
+                                        <i class="fa fa-fw fa-info-circle" aria-hidden="true"></i>
+                                    </span>
+                                    </label>
+                                    <div class="col-md-11 d-flex align-content-center" style="margin-bottom: 10px; max-width: 29.3%;">
+                                        <input type="text" id="businessName" class="form-control" th:placeholder="'Prefix for ' + ${employee.business.name}">
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4>Tidsperiode</h4>
+                                </div>
+                                <p>
+                                    Angiv hvor langt medarbejderen skal være aktiv for.
+                                </p>
+                                <div class="form-group row pickDates">
+                                    <label class="col-sm-1 col-form-label"><strong>Start dato</strong></label>
+                                    <div class="col-sm-11" style="margin-bottom: 10px;">
+                                        <div class="input-group" style="max-width: 30%;">
+                                            <input type="text" th:value="${employee.startDate}" class="form-control" id="startDate" placeholder="dd/mm/yyyy">
+                                            <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fa fa-fw fa-calendar"></i>
+                                            </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <label class="col-sm-1 col-form-label"><strong>Stop dato</strong></label>
+                                    <div class="col-sm-11">
+                                        <div class="input-group" style="max-width: 30%;">
+                                            <input type="text" th:value="${employee.stopDate}" class="form-control" id="stopDate" placeholder="dd/mm/yyyy">
+                                            <div class="input-group-append">
+                                            <span class="input-group-text">
+                                                <i class="fa fa-fw fa-calendar"></i>
+                                            </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4>Tildel roller</h4>
+                                </div>
+                                <p>
+                                    Tildel en arketype til medarbejderen, som angiver hvilke rettigheder den får.
+                                </p>
+                                <div class="form-group row">
+                                    <label class="col-sm-1 col-form-label" style="white-space: nowrap">
+                                        <strong>Arketype</strong>
+                                    </label>
+                                    <div class="col-sm-11 d-flex align-content-center">
+                                        <input style="max-width: 30%;" readonly type="text" id="archetype" class="form-control personMasterTooltip">
+                                        <button type="button" onclick="approveService.chooseArchetype()" class="btn btn-primary">Vælg arketype</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4>Organisation</h4>
+                                </div>
+                                <p>
+                                    Angiv hvilken organisation medarbejderen skal placeres i.
+                                </p>
+                                <div class="form-group row">
+                                    <label class="col-sm-1 col-form-label" style="white-space: nowrap">
+                                        <strong>Enhed</strong>
+                                    </label>
+                                    <div class="col-sm-11 d-flex align-content-center">
+                                        <input style="max-width: 30%;" readonly type="text" id="entity" class="form-control personMasterTooltip">
+                                        <button type="button" onclick="approveService.chooseEntity()" class="btn btn-primary">Vælg enhed</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ibox-footer">
+                                <div class="form-group row">
+                                    <div class="col-sm-12 text-right">
+                                        <button id="annuller" onclick="approveService.cancelButton()" class="btn btn-w-m btn-danger">Annuller</button> &nbsp;
+                                        <button th:data-id="${employee.id}" onclick="approveService.saveApprovedEmployee(this)" id="bekræft" class="btn btn-w-m btn-primary">Bekræft</button>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true, checkbox = true, jstree = true, datepicker = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+    <div class="modal-dialog modal-lg">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="title" th:text="${'Vælg enhed'}"></h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <input class="form-control" id="ou-tree-search" style="margin-bottom: 5px;" th:placeholder="${'Søg'}"/>
+                <div id="ou-tree"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal" th:text="${'Annuller'}"></button>
+                <button type="button" id="save" class="btn btn-primary" onclick="approveService.saveOUs()" th:text="${'Gem'}"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade bd-example-modal-lg" id="modal-archetype" role="dialog">
+    <div class="modal-dialog modal-lg">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="archetype-title" th:text="${'Vælg arketype'}"></h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table id="archetypeTable" class="table table-striped table-bordered table-hover" >
+                                <thead>
+                                <tr>
+                                    <th>Navn</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                                </thead>
+                                <tfoot style="display: table-row-group">
+                                <tr>
+                                    <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                    <td></td>
+                                </tr>
+                                </tfoot>
+                                <tbody>
+                                <tr th:each="archetype : ${archetypes}">
+                                    <td th:value="${archetype.id}" th:text="${archetype?.name}"></td>
+                                    <td>
+                                        <input type="radio" name="archetypeChoice" th:id="${'archetypeChoice' + archetype.id}" class="i-checks" th:data-name="${archetype?.name}" th:data-id="${archetype.id}"  onchange="approveService.updateArchetype(this)">
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="approveService.closeModal()" th:text="${'Annuller'}"></button>
+                <button type="button" id="save-archetype" class="btn btn-primary" onclick="approveService.saveArchetype()" th:text="${'Gem'}"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<div style="display: none;" id="isAdmin" th:data-admin="${isAdmin}"></div>
+<script type="text/javascript" th:src="@{/js/admin/employees/approve.js}"></script>
+<script type="text/javascript" th:src="@{/js/admin/employees/datepickers.js}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+</body>
+<style>
+    #title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 10.5px;
+        margin-bottom: 10.5px;
+    }
+
+    .close {
+        float: right;
+        font-size: 21px;
+        font-weight: bold;
+        line-height: 1;
+        color: #000;
+        text-shadow: 0 1px 0 #fff;
+        opacity: 0.2;
+    }
+
+    .modal-header .close {
+        margin-bottom: 2px;
+    }
+
+    button.close {
+        padding: 0;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        -webkit-appearance: none;
+    }
+
+    .modal-header {
+        padding: 15px;
+        border-bottom: 1px solid #e5e5e5;
+    }
+</style>
+</html>

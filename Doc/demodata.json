@@ -1,0 +1,68 @@
+{
+  "businesses": [
+    {
+      "name": "Pædagogerne",
+      "cvr": "123456789",
+      "prefix": "Pæd"
+    },
+    {
+      "name": "Digital Identity",
+      "cvr": "36074051",
+      "prefix": "Dig"
+    }
+  ],
+  "admins": [
+    {
+      "name": "Jeremy Leon Gulow",
+      "uuid": "ffd5c18b-c545-4a06-afd0-76ee08732521",
+      "email": "001@digital-identity.dk"
+    },
+    {
+      "name": "Friis Anton Jensen",
+      "uuid": "167426f5-0397-4a15-a0ea-845426de0a28",
+      "email": "002@digital-identity.dk"
+    },
+    {
+      "name": "Malthe Plenge Overgaard",
+      "uuid": "7fc1705b-2e45-4af9-b4ed-c3f637e81645",
+      "email": "003@digital-identity.dk"
+    }
+  ],
+  "employees": [
+    {
+      "name": "Gunnar Larsen",
+      "cpr": "0000000004",
+      "email": "004@digital-identity.dk",
+      "businessId": 2,
+      "approved": "LEADER_APPROVED",
+      "cvr": "36074051",
+      "orgUnitUuid": ""
+    },
+    {
+      "name": "Klaus Nørtoft",
+      "cpr": "0000000005",
+      "email": "005@digital-identity.dk",
+      "businessId": 1,
+      "approved": "ADMIN_APPROVED",
+      "cvr": "123456789",
+      "orgUnitUuid": ""
+    },
+    {
+      "name": "Peter Petersen",
+      "cpr": "0000000006",
+      "email": "006@digital-identity.dk",
+      "businessId": 1,
+      "approved": "AWAITING_APPROVAL",
+      "cvr": "123456789",
+      "orgUnitUuid": ""
+    }
+  ],
+  "archetypes": [
+    {
+      "name": "Rollepakke 1"
+    },
+    {
+      "name": "Rollepakke 2"
+    }
+  ]
+}

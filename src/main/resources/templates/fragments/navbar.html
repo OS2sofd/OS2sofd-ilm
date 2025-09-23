@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<div th:fragment="topbar" class="row border-bottom white-bg">
+		<nav class="navbar navbar-expand-lg navbar-static-top" role="navigation"> &nbsp; &nbsp;
+
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-expanded="true" aria-label="Toggle navigation">
+				<i class="fa fa-reorder"></i>
+			</button>
+
+			<ul class="nav navbar-nav mr-auto" id="top-menu">
+				<li sec:authorize="hasRole('ROLE_SYSTEM_ADMINISTRATOR') || hasRole('ROLE_SYSTEM_READONLY')" th:class="${page != null && (#strings.startsWith(page, 'archetypes') || #strings.startsWith(page, 'activation') || #strings.startsWith(page, 'business') || #strings.startsWith(page, 'auditlog') || #strings.startsWith(page, 'cms') || #strings.startsWith(page, 'accounts')) ? 'active' : ''}">
+				<a class="nav-link active" role="button" th:href="@{/admin/auditlog}">Administration</a>
+				</li>
+                <li sec:authorize="(hasRole('ROLE_SYSTEM_ADMINISTRATOR') || hasRole('ROLE_EMPLOYEE_ADMINISTRATOR') || hasRole('ROLE_SYSTEM_READONLY'))" th:class="${page != null && (#strings.startsWith(page, 'approve') || #strings.startsWith(page, 'employee')) ? 'active' : ''}">
+                    <a class="nav-link active" role="button" th:href="@{/employees/overview}">Medarbejdere</a>
+                </li>
+                <li sec:authorize="(hasRole('ROLE_EMPLOYEE'))" th:class="${page != null && #strings.startsWith(page, 'profile') ? 'active' : ''}">
+                    <a class="nav-link active" role="button" th:href="@{/templates/employee/my/account}">Profil</a>
+                </li>
+			</ul>
+
+			<ul class="nav navbar-nav mr-auto" id="phone-top-menu">
+<!--				<li>-->
+<!--					<form th:action="@{/logout}" id="logout-form" method="post"></form>-->
+<!--					<a href="#" onclick="$('#logout-form').submit();">-->
+<!--						<i class="fa fa-fw fa-sign-out"></i>&nbsp Log ud-->
+<!--					</a>-->
+<!--				</li>-->
+			</ul>
+		</nav>
+	</div>
+</body>
+</html>

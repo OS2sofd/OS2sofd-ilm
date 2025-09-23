@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar}"></div>
+
+        <div class="wrapper wrapper-content">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-exclamation-triangle"></em> &nbsp; Der er opstået en fejl i forbindelse med login</h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>Det er opstået en fejl. Prøv at logge ind igen. Hvis fejlen fortsætter kontakt din IT-afdeling</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: scripts}"></div>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true, texteditor = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'cms')}"></div>
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'cms')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="cms">
+                <div class="col-md-12" style="margin-top: 20px;">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-pencil"></em> &nbsp; Rediger <span th:text="${cmsMessage.key}"></span></h5>
+                        </div>
+
+                        <div class="ibox-content">
+                            <p th:text="${cmsMessage.description}">
+                            </p>
+
+                            <p th:if="${cmsMessage.key == 'cms.logo'}">
+                                Her kan du uploade et nyt logo, som præsenteres for alle brugerne i øverste venstre hjørne. Det er vigtigt
+                                at logoet er i PNG format, og har en gennemsigtig baggrund. Bemærk at logoet bliver skaleret ned til en
+                                højde på 25 pixels, så test evt udseendet af logoet i den højde før det uploades.
+                            </p>
+
+                            <p>På grund af caching, vil der gå lidt tid (op til 5 minutter), inden ændringen træder i kraft</p>
+                            <p>Du kan gøre brug af følgende pladsholdere:</p>
+                            <th:block th:unless="${cmsMessage.key == 'cms.logo'}">
+                                <div th:each="placeholder : ${placeholders}" style="margin-bottom: 5px;">
+                                    <strong th:text="${placeholder.key + ': '}"></strong>
+                                    <span th:text="${placeholder.displayName}"></span>
+                                </div>
+                            </th:block>
+
+                            <form id="cmsLogoForm" th:if="${cmsMessage.key == 'cms.logo'}" action="#" th:action="@{/admin/cms-edit/logo}" th:object="${cmsMessage}" method="post" enctype="multipart/form-data">
+                                <input th:field="*{key}" style="display: none">
+                                <input th:field="*{description}" style="display: none">
+                                <div th:if="${cmsMessage.key == 'cms.logo'}">
+                                    <label for="value" class="custom-file-upload">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span style="margin-left: 8px">Vælg billede (.png)</span>
+                                    </label>
+                                    <input type='file' name="value" id="value" accept=".png">
+                                </div>
+                                <p th:if="${showError}" style="color: red;">Den uploadede billede er for stort. Max 64KB tillades</p>
+                                <br/>
+
+                                <div class="text-right">
+                                    <button th:href="@{/admin/cms}" class="btn btn-danger">Annuller</button>
+                                    <button th:href="@{/admin/cms}" th:if="${cmsMessage.key == 'cms.logo'}" onclick="cmsEditService.removeLogo()" class="btn btn-warning">Fjern logo</button>
+                                    <button th:if="${cmsMessage.key == 'cms.logo'}" type="submit" class="btn btn-primary">Gem logo</button>
+                                </div>
+                            </form>
+
+
+                            <form th:unless="${cmsMessage.key == 'cms.logo'}" action="#" th:action="@{/admin/cms-edit}" th:object="${cmsMessage}" method="post">
+                                <input th:field="*{key}" style="display: none">
+                                <input th:field="*{description}" style="display: none">
+                                <textarea id="content" class="form-control" th:field="*{value}" autocomplete="off" style="min-height:350px;"></textarea>
+                                <p th:if="${showError}" style="color: red;">Den indtastede tekst er for lang. Der tillades max 65536 tegn (inkl formattering)</p>
+                                <br/>
+
+                                <div class="text-right">
+                                    <button type="submit" class="btn btn-primary">Gem tekst</button>
+                                    <button th:href="@{/admin/cms}" class="btn btn-danger">Annuller</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true, texteditor = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/admin/cms/cms.js}"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+<style>
+    .custom-file-upload {
+        border: 2px dashed #ccc;
+        display: inline-block;
+        padding: 1rem 2rem;
+        cursor: pointer;
+        border-radius: 4px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+
+    .custom-file-upload:hover {
+        border-color: #007bff;
+        background: #f1f7ff;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+</style>
+</html>

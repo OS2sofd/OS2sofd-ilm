@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<body th:fragment="sidemenu">
+	<aside class="side-menu">
+		<div class="sidebar-collapse" style="width: 230px; max-width: 230px">
+			<ul class="nav metismenu" id="side-menu">
+                <li class="navbar-header" style="margin-top: -20px; margin-bottom: 10px">
+                    <a th:href="@{/dashboard}" style="background:#293846" class=" navbar-brand d-flex align-items-center">
+                        <a th:href="@{/dashboard}" th:unless="${@cmsMessageBundle.getText('cms.logo') == ''}" style="display: inline;">
+                            <img class="img-fluid" th:src="${'data:image/png;base64,' + @cmsMessageBundle.getText('cms.logo')}" style="max-width: 300px; max-height: 38px;">
+                            <strong style="color: white; margin-left: 10px;">OS2ilm</strong>
+                        </a>
+                        <a th:href="@{/dashboard}" th:unless="${@cmsMessageBundle.getText('cms.logo') != ''}" style="display: inline; float: left; margin-top: -10px;">
+                            <h3 style="color: white; margin-left: 10px;">OS2ilm</h3>
+                        </a>
+                    </a>
+                </li>
+                <th:block th:if="${admin == true}">
+                    <li th:class="${page != null && #strings.startsWith(page, 'auditlog') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/admin/auditlog}"><em class="fa fa-fw fa-table"></em> &nbsp Auditlog</a>
+                    </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'cms') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/admin/cms}"><em class="fa fa-fw fa-cog"></em> &nbsp CMS</a>
+                    </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'accounts') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/admin/ad/accounts}"><em class="fa fa-fw fa-book"></em> &nbsp AD-konti</a>
+                    </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'archetypes') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/archetypes}"><em class="fa fa-fw fa-tags"></em> &nbsp Arketyper</a>
+                    </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'business') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/business/overview}"><em class="fa fa-fw fa-building"></em> &nbsp Virksomheder</a>
+                    </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'activation') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/admin/ad/activation}"><em class="fa fa-fw fa-clock-o"></em> &nbsp Aktiveringsperiode</a>
+                    </li>
+                </th:block>
+				<th:block th:if="${leader == true}">
+					<li th:class="${page != null && #strings.startsWith(page, 'employee') ? ' active' : ''}">
+						<a style="color: #a7b1c2" th:href="@{/employees/overview}"><em class="fa fa-fw fa-users"></em> &nbsp Medarbejdere</a>
+					</li>
+					<li th:class="${page != null && #strings.startsWith(page, 'approve') ? ' active' : ''}">
+						<a style="color: #a7b1c2" th:href="@{/approve}"><em class="fa fa-fw fa-check"></em> &nbsp Godkend</a>
+					</li>
+				</th:block>
+                <th:block th:if="${employee == true}">
+                    <li th:class="${page != null && #strings.startsWith(page, 'profile') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/templates/employee/my/account}"><em class="fa fa-fw fa-user"></em> &nbsp Min profil</a>
+                    </li>
+                </th:block>
+                <li sec:authorize="isAuthenticated()" style="position: absolute; bottom: 30px;">
+                    <form th:action="@{/logout}" id="logout-form" method="post"></form>
+                    <a href="#" style="color: #a7b1c2;" onclick="$('#logout-form').submit();">
+                        <i class="fa fa-sign-out"></i>&nbsp Log ud
+                    </a>
+                </li>
+			</ul>
+		</div>
+	</aside>
+</body>
+</html>

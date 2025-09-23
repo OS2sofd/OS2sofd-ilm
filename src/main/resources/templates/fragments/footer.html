@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<div th:fragment="scripts">
+		<!-- minimum set of script files - always required -->
+		<script th:src="@{/webjars/inspinia/2.9.3/js/jquery-3.1.1.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/steps/jquery.steps.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/popper.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/bootstrap.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/metisMenu/jquery.metisMenu.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/slimscroll/jquery.slimscroll.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/inspinia.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/pace/pace.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/sweetalert/sweetalert.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/toastr/toastr.min.js}"></script>
+		<script>
+			toastr.options = {
+			  "positionClass": "toast-top-right toastr-buffer"
+			}
+		</script>
+        <script type="text/javascript" th:src="@{/js/fragments/cvrSearch.js}"></script>
+        <th:block th:if="${checkbox == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/iCheck/icheck.min.js}"></script>
+		<script>
+			$(document).ready(function () {
+				$('.i-checks').iCheck({
+					checkboxClass: 'icheckbox_square-green',
+					radioClass: 'iradio_square-green',
+				});
+			});
+        </script>
+        </th:block>
+        <th:block th:if="${slimScroll == true}">
+			<script>
+				$('.scrollable-content').slimscroll({
+					height: '500px',
+					railVisible: true,
+					scrollable: true,
+					allowPageScroll: false,
+					wheelStep: 5
+				});
+			</script>
+		</th:block>
+        <th:block th:if="${datatables == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/dataTables/datatables.min.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/dataTables/dataTables.bootstrap4.min.js}"></script>
+		</th:block>
+		
+		<th:block th:if="${jstree == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/jsTree/jstree.min.js}"></script>
+		</th:block>
+		
+		<th:block th:if="${texteditor == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/summernote/summernote-bs4.js}"></script>
+		</th:block>
+		
+		<th:block th:if="${slider == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/ionRangeSlider/ion.rangeSlider.min.js}"></script>
+		</th:block>
+		
+		<th:block th:if="${chart == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/sparkline/jquery.sparkline.min.js}"></script>
+		</th:block>
+
+		<th:block th:if="${datepicker == true}">
+			<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/datapicker/bootstrap-datepicker.js}"></script>
+		</th:block>
+
+		<th:block th:if="${tabs == true}">
+			<script>
+				$(document).ready(function () {
+					// on load of the page: switch to the currently selected tab
+					var hash = window.location.hash;
+					$('.rememberPosition a[href="' + hash + '"]').tab('show');
+				});
+
+				$('.rememberPosition a').click(function(e) {
+					e.preventDefault();
+					$(this).tab('show');
+				});
+
+				// store the currently selected tab in the hash value
+				$("ul.rememberPosition > li > a").on("shown.bs.tab", function(e) {
+					var id = $(e.target).attr("href").substr(1);
+					window.location.hash = id;
+					window.scrollTo(0, 0); // Prevent scroll to tab
+				});
+			</script>
+		</th:block>
+		<th:block th:if="${codemirror == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/codemirror/codemirror.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/codemirror/mode/javascript/javascript.js}"></script>
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/codemirror/mode/xml/xml.js}"></script>
+		</th:block>
+		
+		<th:block th:if="${select2 == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/select2/select2.full.min.js}"></script>
+		</th:block>
+
+		<th:block th:if="${validate == true}">
+		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/validate/jquery.validate.min.js}"></script>
+		</th:block>
+	</div>
+	
+	<div class="footer fixed" th:fragment="footer">
+<!--		<div class="float-right text-center align-middle"><strong><span class="no-p-wrap" th:utext="${@cmsMessageBundle.getText('cms.footer.text')}"></span></strong></div>-->
+<!--		&lt;!&ndash;-->
+<!--            <div class="pull-right">-->
+<!--                xxxx-->
+<!--            </div>-->
+<!--            <div>-->
+<!--                xxxx-->
+<!--            </div>-->
+<!--         &ndash;&gt;-->
+	</div>
+</body>
+</html>

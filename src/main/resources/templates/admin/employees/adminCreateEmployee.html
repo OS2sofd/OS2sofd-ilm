@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true, jstree = true, checkbox = true, datepicker = true)}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+</head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (leader = true, page = 'employee')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'employee')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="createEmployee">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-plus"></em> &nbsp; Opret medarbejder </h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                                Her kan du oprette en ny medarbejder i løsningen.
+                            </p>
+                            <div>
+                                <h4>Stamdata</h4>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label"><strong>Navn</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeeName" class="form-control" placeholder="Navn">
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>E-Mail</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeeMail" class="form-control personMasterTooltip" placeholder="Email">
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Mobilnummer (Optionelt)</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeePhone" class="form-control personMasterTooltip" placeholder="Mobilnummer">
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Virksomhed</strong></label>
+                                <div class="col-md-10" style="margin-bottom: 10px;">
+                                    <select class="form-control" id="businessSelect">
+                                        <option value="0">Vælg Virksomhed</option>
+                                        <option th:each="business : ${businesses}" th:value="${business.id}" th:text="${business.name}"></option>
+                                    </select>
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Stilling</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeePos" class="form-control personMasterTooltip" placeholder="Stilling">
+                                </div>
+
+                                <div class="col-md-12">
+                                    <div class="form-group row pickDates">
+                                        <label class="col-sm-2 col-form-label"><strong>Start dato:</strong></label>
+                                        <div class="col-sm-10" style="margin-bottom: 10px;">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="startDate" placeholder="dd/mm/yyyy">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <i class="fa fa-fw fa-calendar"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label class="col-sm-2 col-form-label"><strong>Stop dato:</strong></label>
+                                        <div class="col-sm-10">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="stopDate" placeholder="dd/mm/yyyy">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <i class="fa fa-fw fa-calendar"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Aktiveringsperiode</strong></label>
+                                <div class="col-md-10" style="margin-bottom: 10px;">
+                                    <select class="form-control" id="activationSelect">
+                                        <option value="0">Vælg aktiveringsperiode</option>
+                                        <option th:each="activation : ${activations}" th:value="${activation.id}" th:text="${'Fra ' + activation.startTime + ' til ' + activation.stopTime + ' og weekend: ' + (activation.excludeWeekends ?  'Ikke inkluderet' : 'Inkluderet')}"></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p>
+                                Mindst én skal udfyldes:
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap; margin-bottom: 10px;"><strong>CPR-nummer</strong></label>
+                                <div class="col-sm-10">
+                                    <input id="createEmployeeCpr" class="form-control personMasterTooltip" placeholder="Cpr">
+                                </div>
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>MitId Uuid</strong></label>
+                                <div class="col-sm-10">
+                                    <input id="createEmployeeUuid" class="form-control personMasterTooltip" placeholder="Uuid">
+                                </div>
+                            </div>
+                            <div>
+                                <h4>Tildel roller</h4>
+                            </div>
+                            <p>
+                                Tildel en arketype til medarbejderen, som bestemmer hvilke rettigheder den får.
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap">
+                                    <strong>Arketype</strong>
+                                </label>
+                                <div class="col-sm-10 d-flex align-content-center">
+                                    <input style="max-width: 30%;" readonly type="text" id="archetype" class="form-control personMasterTooltip">
+                                    <button type="button" onclick="adminEmployeeService.chooseArchetype()" class="btn btn-primary">Vælg arketype</button>
+                                </div>
+                            </div>
+                            <div>
+                                <h4>Organisation</h4>
+                            </div>
+                            <p>
+                                Angiv hvilken organisation medarbejderen skal placeres i.
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap">
+                                    <strong>Enhed</strong>
+                                </label>
+                                <div class="col-sm-10 d-flex align-content-center">
+                                    <input style="max-width: 30%;" readonly type="text" id="entity" class="form-control personMasterTooltip">
+                                    <button type="button" onclick="adminEmployeeService.chooseEntity()" class="btn btn-primary">Vælg enhed</button>
+                                </div>
+                            </div>
+                            <div class="ibox">
+                                <div class="ibox-footer">
+                                    <div class="form-group row">
+                                        <div style="text-align: right" class="col-sm-12">
+                                            <button id="annuller" onclick="adminEmployeeService.cancelButton()" class="btn btn-w-m btn-danger">Annuller</button> &nbsp;
+                                            <button onclick="adminEmployeeService.saveCreatedEmployee()" id="bekræft" class="btn btn-w-m btn-primary">Bekræft</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true, jstree = true, checkbox = true, datepicker = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+    <div class="modal-dialog modal-lg">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="title" th:text="${'Vælg enhed'}"></h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <input class="form-control" id="ou-tree-search" style="margin-bottom: 5px;" th:placeholder="${'Søg'}"/>
+                <div id="ou-tree"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal" th:text="${'Annuller'}"></button>
+                <button type="button" id="save" class="btn btn-primary" onclick="adminEmployeeService.saveOUs()" th:text="${'Gem'}"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade bd-example-modal-lg" id="modal-archetype" role="dialog">
+    <div class="modal-dialog modal-lg">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="archetype-title" th:text="${'Vælg arketype'}"></h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table id="archetypeTable" class="table table-striped table-bordered table-hover" >
+                                <thead>
+                                <tr>
+                                    <th>Navn</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                                </thead>
+                                <tfoot style="display: table-row-group">
+                                <tr>
+                                    <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                    <td></td>
+                                </tr>
+                                </tfoot>
+                                <tbody>
+                                <tr th:each="archetype : ${archetypes}">
+                                    <td th:value="${archetype.id}" th:text="${archetype?.name}"></td>
+                                    <td>
+                                        <input type="radio" name="archetypeChoice" th:id="${'archetypeChoice' + archetype.id}" class="i-checks" th:data-name="${archetype?.name}" th:data-id="${archetype.id}"  onchange="adminEmployeeService.updateArchetype(this)">
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="adminEmployeeService.closeModal()" th:text="${'Annuller'}"></button>
+                <button type="button" id="save-archetype" class="btn btn-primary" onclick="adminEmployeeService.saveArchetype()" th:text="${'Gem'}"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/admin/employees/adminEmployees.js}"></script>
+<script type="text/javascript" th:src="@{/js/admin/employees/datepickers.js}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+<style>
+    #title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 10.5px;
+        margin-bottom: 10.5px;
+    }
+
+    .close {
+        float: right;
+        font-size: 21px;
+        font-weight: bold;
+        line-height: 1;
+        color: #000;
+        text-shadow: 0 1px 0 #fff;
+        opacity: 0.2;
+    }
+
+    .modal-header .close {
+        margin-bottom: 2px;
+    }
+
+    button.close {
+        padding: 0;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        -webkit-appearance: none;
+    }
+
+    .modal-header {
+        padding: 15px;
+        border-bottom: 1px solid #e5e5e5;
+    }
+</style>
+</html>

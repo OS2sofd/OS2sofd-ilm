@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (checkbox = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/empty-navbar :: emptyTopBar}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="verificationPage">
+                <div class="col-md-4">
+                </div>
+                <div class="col-md-4" style="margin-top: 20px; align-content: center">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-bell"></em> &nbsp; Afventer godkendelse</h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                                For at afslutte registreringen skal en administrator/leder godkende din registrering. Du får en notifikation så snart du kan logge ind i løsningen.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+            <div th:replace="~{fragments/footer :: scripts (checkbox = true)}"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/registration/verification.js}"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

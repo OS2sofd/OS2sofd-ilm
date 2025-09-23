@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div th:fragment="emptyTopBar" class="row border-bottom">
+	<nav class="navbar navbar-expand-xl navbar-static-top" role="navigation" style="background-color: #293846">
+		<a class="navbar-brand" style="background: #293846; color:white;align-self: center;"><strong>OS2ilm</strong></a>
+		<div class="navbar-collapse collapse"></div>
+        <div class="navbar-collapse collapse"></div>
+        <ul class="nav navbar-top-links navbar-right" id="emptyLogout">
+            <li sec:authorize="isAuthenticated()">
+                <form th:action="@{/logout}" id="logout-form" method="post"></form>
+                <a href="#" style="color: #a7b1c2;" onclick="$('#logout-form').submit();">
+                    <i class="fa fa-sign-out"></i>&nbsp Log ud
+                </a>
+            </li>
+        </ul>
+	</nav>
+</div>
+</body>
+</html>

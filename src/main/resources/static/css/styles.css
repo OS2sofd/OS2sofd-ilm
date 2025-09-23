@@ -1,0 +1,41 @@
+#side-menu > li.active {
+    background-color: #293846 !important;
+    border-left: 4px solid #19aa8d;
+}
+#side-menu > a:hover {
+    background-color: #293846 !important;
+}
+#side-menu > li a:hover {
+    background-color: #293846 !important;
+    color: #fff !important;
+}
+.side-menu, .sidebar-collapse > li a:active {
+    background-color: #293846 !important;
+}
+#side-menu > li.active a {
+    color: #ffffff !important;
+}
+
+#top-menu > li > a {
+    padding: 15px 20px;
+}
+
+#refreshButton {
+    width: 50px !important;
+}
+
+button:not(.close) {
+    width: 120px !important;
+}
+
+#downloadReport {
+    width: auto !important;
+}
+
+.cancel {
+    width: auto !important;
+}
+
+#top-menu > li.active a {
+    color: #19aa8d !important;
+}

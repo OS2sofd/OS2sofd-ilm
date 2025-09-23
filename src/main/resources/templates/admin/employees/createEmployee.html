@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true, datepicker = true)}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+</head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (leader = true, page = 'employee')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'employee')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="createEmployee">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-plus"></em> &nbsp; Opret medarbejder </h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                                Her kan du oprette en ny medarbejder i løsningen.
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label"><strong>Navn</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeeName" class="form-control" placeholder="Navn">
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>E-Mail</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeeMail" class="form-control personMasterTooltip" placeholder="Email">
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Mobilnummer (Optionelt)</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeePhone" class="form-control personMasterTooltip" placeholder="Mobilnummer">
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Virksomhed</strong></label>
+                                <div class="col-md-10" style="margin-bottom: 10px;">
+                                    <select class="form-control" id="businessSelect">
+                                        <option value="0">Vælg Virksomhed</option>
+                                        <option th:each="business : ${businesses}" th:value="${business.id}" th:text="${business.name}"></option>
+                                    </select>
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Stilling</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="createEmployeePos" class="form-control personMasterTooltip" placeholder="Stilling">
+                                </div>
+
+                                <div class="col-md-12">
+                                    <div class="form-group row pickDates">
+                                        <label class="col-sm-2 col-form-label"><strong>Start dato:</strong></label>
+                                        <div class="col-sm-10" style="margin-bottom: 10px;">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="startDate" placeholder="dd/mm/yyyy">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <i class="fa fa-fw fa-calendar"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label class="col-sm-2 col-form-label"><strong>Stop dato:</strong></label>
+                                        <div class="col-sm-10">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="stopDate" placeholder="dd/mm/yyyy">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <i class="fa fa-fw fa-calendar"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <p>
+                                Mindst én skal udfyldes:
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap; margin-bottom: 10px;"><strong>CPR-nummer</strong></label>
+                                <div class="col-sm-10">
+                                    <input id="createEmployeeCpr" class="form-control personMasterTooltip" placeholder="Cpr">
+                                </div>
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>MitId Uuid</strong></label>
+                                <div class="col-sm-10">
+                                    <input id="createEmployeeUuid" class="form-control personMasterTooltip" placeholder="Uuid">
+                                </div>
+                            </div>
+                            <div class="ibox">
+                                <div class="ibox-footer">
+                                    <div class="form-group row">
+                                        <div style="text-align: right" class="col-sm-12">
+                                            <button id="annuller" onclick="employeeService.cancelButton()" class="btn btn-w-m btn-danger">Annuller</button> &nbsp;
+                                            <button onclick="employeeService.saveCreatedEmployee()" id="bekræft" class="btn btn-w-m btn-primary">Bekræft</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true, datepicker = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/admin/employees/employees.js}"></script>
+<script type="text/javascript" th:src="@{/js/admin/employees/datepickers.js}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

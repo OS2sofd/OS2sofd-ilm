@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="auditLog">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-list"></em> &nbsp; TEST TEST TEST</h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                                HERE WE CAN INPUT RANDOM TEXT SO THAT ITS DISPLAYED BEFORE THE ACTUAL CONTENT OF THE PAGE
+                            </p>
+                            <div>
+                                <h4>Test</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+<!--<script type="text/javascript" th:src="@{/js/admin/auditlog.js}"></script>-->
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

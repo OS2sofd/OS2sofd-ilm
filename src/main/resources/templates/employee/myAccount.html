@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+  <div th:replace="~{fragments/sidebar :: sidemenu (employee = true, page = 'profile')}"></div>
+
+  <div id="page-wrapper" class="gray-bg">
+    <div th:replace="~{fragments/navbar :: topbar}"></div>
+    <div class="wrapper wrapper-content">
+      <div class="row" id="myAccount">
+        <div class="col-md-12" style="margin-top: 20px">
+          <div class="ibox">
+            <div class="ibox-title">
+              <h5><em class="fa fa-fw fa-user"></em> &nbsp; Min profil </h5>
+            </div>
+            <div class="ibox-content">
+              <p>
+                Her kan du se din profil og foretage nogle ændringer.
+              </p>
+                <button type="button" id="enableEditProfile" onclick="profileService.enableEditProfile()" style="float: right" class="btn btn-w-m btn-primary">Rediger profil</button>
+                <button type="button" id="cancelEditProfile" onclick="profileService.disableEditProfile()" style="float: right" class="btn btn-w-m btn-danger">Annuller</button>
+                <button type="button" id="saveEditProfile" th:data-id="${employee.id}" onclick="profileService.saveEditProfile(this)" style="float: right" class="btn btn-w-m btn-primary">Gem</button>
+              <span>
+                  <h4>
+                      Kontaktoplysninger
+                  </h4>
+              </span>
+              <div class="col-md-12" style="margin-top: 20px">
+                  <div class="form-group row">
+                      <label class="col-md-3 col-form-label">Navn:</label>
+                      <div class="col-md-3">
+                          <input type="text" th:value="${employee?.name}" id="nameInput" class="form-control" readonly>
+                      </div>
+                  </div>
+                  <div class="form-group row">
+                      <label class="col-md-3 col-form-label">Mobilnummer:</label>
+                      <div class="col-md-3">
+                          <input type="text" th:value="${employee?.phone}" id="phoneInput" class="form-control" readonly>
+                      </div>
+                  </div>
+                  <div class="form-group row">
+                      <label class="col-md-3 col-form-label">Brugernavn:</label>
+                      <div class="col-md-3">
+                          <input type="text" th:value="${employee?.user?.name}" id="accountInput" class="form-control" readonly>
+                      </div>
+                  </div>
+                  <div class="form-group row">
+                      <label class="col-md-3 col-form-label">Start dato:</label>
+                      <div class="col-md-3">
+                          <input type="text" th:value="${employee?.startDate}" class="form-control" readonly>
+                      </div>
+                  </div>
+                  <div class="form-group row">
+                      <label class="col-md-3 col-form-label">Stop dato:</label>
+                      <div class="col-md-3">
+                          <input type="text" th:value="${employee?.stopDate}" class="form-control" readonly>
+                      </div>
+                  </div>
+              </div>
+                <div class="form-group row">
+                    <button type="button" th:data-id="${employee.id}" onclick="profileService.resetPassword(this);" style="float: right; margin-right: 5px; margin-left: 5px;" class="btn btn-w-m btn-primary">Nulstil AD Kodeord<em style="margin-left: 5px;" class="fa fa-refresh"></em></button>
+                    <button type="button" th:data-id="${employee.id}" onclick="profileService.requestExtension(this);" style="float: right" class="btn btn-w-m btn-warning">Anmod om forlængelse</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div th:replace="~{fragments/footer :: scripts (datatables = true)}"></div>
+      <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript" th:src="@{/js/profile/profile.js}"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

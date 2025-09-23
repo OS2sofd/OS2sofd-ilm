@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true, checkbox = true, datepicker = true)}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+</head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (leader = true, page = 'employee')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'employee')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="editEmployee">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-pencil"></em> &nbsp; Rediger medarbejder </h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                                Her kan du redigere en eksisterende medarbejder.
+                            </p>
+                            <div class="form-group row">
+                                <label class="col-sm-2 col-form-label"><strong>Navn</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="editEmployeeName" class="form-control" th:value="${employee?.name}">
+                                </div>
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>E-Mail</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="editEmployeeMail" class="form-control personMasterTooltip" th:value="${employee?.email}">
+                                </div>
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Mobilnummer</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="editEmployeePhone" class="form-control personMasterTooltip" th:value="${employee?.phone}">
+                                </div>
+
+                                <div class="col-md-12">
+                                    <div class="form-group row pickDates">
+                                        <label class="col-sm-2 col-form-label"><strong>Start dato</strong></label>
+                                        <div class="col-sm-10" style="margin-bottom: 10px;">
+                                            <div class="input-group">
+                                                <input type="text" th:value="${employee.startDate}" class="form-control" id="editStartDate" placeholder="dd/mm/yyyy">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <i class="fa fa-fw fa-calendar"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label class="col-sm-2 col-form-label"><strong>Stop dato</strong></label>
+                                        <div class="col-sm-10">
+                                            <div class="input-group">
+                                                <input type="text" th:value="${employee.stopDate}" class="form-control" id="editStopDate" placeholder="dd/mm/yyyy">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <i class="fa fa-fw fa-calendar"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Virksomhed</strong></label>
+                                <div class="col-md-10" style="margin-bottom: 10px;">
+                                    <select class="form-control" id="editBusinessSelect">
+                                        <option value="0">Vælg Virksomhed</option>
+                                        <option th:each="business : ${businesses}" th:value="${business.id}" th:text="${business?.name}" th:selected="${employee.business.getId() == business.getId()}"></option>
+                                    </select>
+                                </div>
+                                <label class="col-sm-2 col-form-label"><strong>Stilling</strong></label>
+                                <div class="col-sm-10" style="margin-bottom: 10px;">
+                                    <input id="editEmployeePosition" class="form-control" th:value="${employee?.positionName}">
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <button onclick="employeeService.openRoleModal()" id="openRoleModal" class="btn btn-w-m btn-primary">Tilføj roller</button>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-md-12">
+                                    <div class="table-responsive">
+                                        <table id="roleTable" class="table table-striped table-bordered table-hover" >
+                                            <thead>
+                                            <tr>
+                                                <th>Navn</th>
+                                                <th>It-system</th>
+                                                <th>Beskrivelse</th>
+                                                <th>Handlinger</th>
+                                            </tr>
+                                            </thead>
+                                            <tfoot style="display: table-row-group">
+                                            <tr>
+                                                <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                                <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                                <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                                <td></td>
+                                            </tr>
+                                            </tfoot>
+                                            <tbody>
+                                            <tr th:each="role : ${roles}">
+                                                <td th:value="${role.id}" th:text="${role?.name}"></td>
+                                                <td th:value="${role.id}" th:text="${role?.itSystem?.name}"></td>
+                                                <td th:value="${role.id}" th:text="${role?.description}"></td>
+                                                <td>
+                                                    <a th:data-id="${role.id}" th:data-con="${employee.id}" onclick="employeeService.deleteRole(this)"><em class="fa fa-fw fa-times"></em></a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <button onclick="employeeService.openGroupModal()" id="openGroupModal" class="btn btn-w-m btn-primary">Tilføj grupper</button>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-md-12">
+                                    <div class="table-responsive">
+                                        <table id="groupTable" class="table table-striped table-bordered table-hover" >
+                                            <thead>
+                                            <tr>
+                                                <th>Navn</th>
+                                                <th>Handlinger</th>
+                                            </tr>
+                                            </thead>
+                                            <tfoot style="display: table-row-group">
+                                            <tr>
+                                                <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                                <td></td>
+                                            </tr>
+                                            </tfoot>
+                                            <tbody>
+                                            <tr th:each="group : ${groups}">
+                                                <td th:text="${group.name}" th:value="${group.id}"></td>
+                                                <td>
+                                                    <a th:data-id="${group.id}" th:data-con="${employee.id}" onclick="employeeService.deleteGroup(this)"><em class="fa fa-fw fa-times"></em></a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ibox">
+                                <div class="ibox-footer">
+                                    <div class="form-group row">
+                                        <div style="text-align: right" class="col-sm-12">
+                                            <button id="annuller" onclick="employeeService.cancelButton()" class="btn btn-w-m btn-danger">Annuller</button> &nbsp;
+                                            <button th:data-id="${employee.id}" onclick="employeeService.saveEditedEmployee(this)" id="bekræft" class="btn btn-w-m btn-primary">Bekræft</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true, checkbox = true, datepicker = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+        <div class="modal inmodal" id="addRoleModal" role="dialog" style="display: none" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content animated fadeIn">
+                    <div class="modal-header">
+                        <H4>Tilføj roller til medarbejderen</H4>
+                    </div>
+                    <div class="modal-body" id="addRoleModalBody">
+                        <p>
+                            Her kan du vælge roller og tilføje dem til medarbejderen.
+                        </p>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <div class="table-responsive">
+                                    <table id="allRolesTable" class="table table-striped table-bordered table-hover" >
+                                        <thead>
+                                        <tr>
+                                            <th>Navn</th>
+                                            <th>It-system</th>
+                                            <th>Beskrivelse</th>
+                                            <th>Handlinger</th>
+                                        </tr>
+                                        </thead>
+                                        <tfoot style="display: table-row-group">
+                                        <tr>
+                                            <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                            <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                            <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                            <td></td>
+                                        </tr>
+                                        </tfoot>
+                                        <tbody>
+                                        <tr th:each="role : ${allRoles}">
+                                            <td th:value="${role.id}" th:text="${role?.name}"></td>
+                                            <td th:value="${role.id}" th:text="${role?.itSystem?.name}"></td>
+                                            <td th:value="${role.id}" th:text="${role?.description}"></td>
+                                            <td>
+                                                <input type="checkbox" th:id="${'roleChoice' + role.id}" class="i-checks modalChecks" th:data-id="${role.id}" onchange="employeeService.updateRole(this)">
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="closeModal" type="button"  class="btn btn-danger" onclick="employeeService.closeModal()">Annuller</button>
+                        <button id="addRoles" type="button" class="btn btn-primary" onclick="employeeService.closeModalAccept()">Tilføj</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal inmodal" id="addGroupModal" role="dialog" style="display: none" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content animated fadeIn">
+                    <div class="modal-header">
+                        <H4>Tilføj grupper til medarbejderen</H4>
+                    </div>
+                    <div class="modal-body" id="addGroupModalBody">
+                        <p>
+                            Her kan du vælge grupper og tilføje dem til medarbejderen.
+                        </p>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <div class="table-responsive">
+                                    <table id="allGroupsTable" class="table table-striped table-bordered table-hover" >
+                                        <thead>
+                                        <tr>
+                                            <th>Navn</th>
+                                            <th>Handlinger</th>
+                                        </tr>
+                                        </thead>
+                                        <tfoot style="display: table-row-group">
+                                        <tr>
+                                            <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                            <td></td>
+                                        </tr>
+                                        </tfoot>
+                                        <tbody>
+                                        <tr th:each="group : ${allGroups}">
+                                            <td th:text="${group.name}" th:value="${group.id}"></td>
+                                            <td>
+                                                <input type="checkbox" th:id="${'groupChoice' + group.id}" class="i-checks modalChecks" th:data-id="${group.id}" onchange="employeeService.updateGroup(this)">
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="closeGroupModal" type="button"  class="btn btn-danger" onclick="employeeService.closeGroupModal()">Annuller</button>
+                        <button id="addGroups" type="button" class="btn btn-primary" onclick="employeeService.closeGroupModalAccept()">Tilføj</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/admin/employees/employees.js}"></script>
+<script type="text/javascript" th:src="@{/js/admin/employees/datepickers.js}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
