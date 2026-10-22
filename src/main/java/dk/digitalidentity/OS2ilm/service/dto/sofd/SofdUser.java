@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
+import lombok.ToString;
 
 @Getter
 @Setter
@@ -15,10 +15,12 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@ToString
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class SofdUser {
 	private String master;
 	private String masterId;
+	private String employeeId;
 	private String uuid;
 	private String userId;
 	private String userType;

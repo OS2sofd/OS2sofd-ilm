@@ -13,33 +13,14 @@
 		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/pace/pace.min.js}"></script>
 		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/sweetalert/sweetalert.min.js}"></script>
 		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/toastr/toastr.min.js}"></script>
-		<script>
-			toastr.options = {
-			  "positionClass": "toast-top-right toastr-buffer"
-			}
-		</script>
-        <script type="text/javascript" th:src="@{/js/fragments/cvrSearch.js}"></script>
+		<script th:src="@{/js/fragments/toastr-config.js}"></script>
+        <script type="module" th:src="@{/js/fragments/cvrSearch.js}"></script>
         <th:block th:if="${checkbox == true}">
 		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/iCheck/icheck.min.js}"></script>
-		<script>
-			$(document).ready(function () {
-				$('.i-checks').iCheck({
-					checkboxClass: 'icheckbox_square-green',
-					radioClass: 'iradio_square-green',
-				});
-			});
-        </script>
+		<script th:src="@{/js/fragments/icheck-init.js}"></script>
         </th:block>
         <th:block th:if="${slimScroll == true}">
-			<script>
-				$('.scrollable-content').slimscroll({
-					height: '500px',
-					railVisible: true,
-					scrollable: true,
-					allowPageScroll: false,
-					wheelStep: 5
-				});
-			</script>
+			<script th:src="@{/js/fragments/slimscroll-init.js}"></script>
 		</th:block>
         <th:block th:if="${datatables == true}">
 		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/dataTables/datatables.min.js}"></script>
@@ -67,25 +48,7 @@
 		</th:block>
 
 		<th:block th:if="${tabs == true}">
-			<script>
-				$(document).ready(function () {
-					// on load of the page: switch to the currently selected tab
-					var hash = window.location.hash;
-					$('.rememberPosition a[href="' + hash + '"]').tab('show');
-				});
-
-				$('.rememberPosition a').click(function(e) {
-					e.preventDefault();
-					$(this).tab('show');
-				});
-
-				// store the currently selected tab in the hash value
-				$("ul.rememberPosition > li > a").on("shown.bs.tab", function(e) {
-					var id = $(e.target).attr("href").substr(1);
-					window.location.hash = id;
-					window.scrollTo(0, 0); // Prevent scroll to tab
-				});
-			</script>
+			<script th:src="@{/js/fragments/tabs-init.js}"></script>
 		</th:block>
 		<th:block th:if="${codemirror == true}">
 		<script th:src="@{/webjars/inspinia/2.9.3/js/plugins/codemirror/codemirror.js}"></script>

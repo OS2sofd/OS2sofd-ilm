@@ -1,0 +1,5 @@
+ALTER TABLE ad_user ADD COLUMN cpr VARCHAR(10) NULL;
+ALTER TABLE ad_user ADD COLUMN initial_password_set BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE ad_user_aud ADD COLUMN cpr VARCHAR(10);
+ALTER TABLE ad_user_aud ADD COLUMN initial_password_set BOOLEAN NULL;

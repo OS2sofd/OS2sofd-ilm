@@ -1,14 +1,12 @@
 package dk.digitalidentity.OS2ilm.controller.mvc;
 
-import dk.digitalidentity.OS2ilm.model.role.NoRoleRequired;
-import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.Map;
+
 import org.springframework.boot.web.error.ErrorAttributeOptions;
-import org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
-import org.springframework.boot.web.servlet.error.ErrorAttributes;
-import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.boot.webmvc.error.DefaultErrorAttributes;
+import org.springframework.boot.webmvc.error.ErrorAttributes;
+import org.springframework.boot.webmvc.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.WebAttributes;
@@ -19,8 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
-import java.time.LocalDateTime;
-import java.util.Map;
+import dk.digitalidentity.OS2ilm.model.role.NoRoleRequired;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @NoRoleRequired
@@ -56,7 +57,7 @@ public class IlmErrorController implements ErrorController {
         
         model.addAttribute("status", String.valueOf(status));
         model.addAttribute("timeStamp", LocalDateTime.now());
-        model.addAttribute("location", request.getRequestURI());
+        model.addAttribute("location", request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI));
         model.addAttribute("exception", exceptionMessage);
 
         return "error/default";

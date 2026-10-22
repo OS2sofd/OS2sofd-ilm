@@ -1,0 +1,28 @@
+digraph integrationsflow {
+    graph [rankdir=TB, bgcolor="transparent", nodesep=0.3, ranksep=0.4, pad=0.1];
+    node  [shape=box, style="rounded,filled", fillcolor="#eceef4", color="#525e7e", penwidth=1.2,
+           fontname="DejaVu Sans", fontsize=11, fontcolor="#1c1f26", margin="0.16,0.1"];
+    edge  [color="#525e7e", penwidth=1.2, arrowsize=0.8, fontname="DejaVu Sans", fontsize=9, fontcolor="#5b6270"];
+
+    start [label="Medarbejderen er godkendt\nog har accepteret betingelserne", fillcolor="#373d54", color="#373d54", fontcolor="white"];
+    sofd  [label=<<b>OS2sofd</b><br/>Personen oprettes eller opdateres<br/>med et tilhørsforhold: enhed, stilling<br/>samt start- og slutdato>];
+    ad    [label=<<b>Active Directory</b><br/>Kontoen oprettes med brugernavn,<br/>kodeord, CPR-nummer og udløbsdato>];
+    rc    [label=<<b>OS2rollekatalog</b><br/>Jobfunktionsroller og rollebuketter<br/>fra Arketypen tildeles>];
+
+    groups  [label="AD-grupper fra\nArketypen tildeles"];
+    welcome [label="Velkomstbesked med\nbrugernavn og kodeord\nsendes til medarbejderen"];
+    link    [label="OS2sofd finder kontoen\nvia CPR-nummeret og\nknytter den til personen"];
+    mail    [label="Exchange-postkasse\nbestilles via OS2sofd", style="rounded,dashed", fillcolor="white"];
+
+    done [label="Fuldt integreret", fillcolor="#373d54", color="#373d54", fontcolor="white"];
+
+    start -> sofd -> ad;
+    ad -> groups;
+    ad -> welcome;
+    ad -> link;
+    link -> mail [style=dashed, label=" valgfrit"];
+    sofd -> rc [style=dashed, label=" planlagt job"];
+    rc -> done;
+
+    { rank=same; ad; rc; }
+}

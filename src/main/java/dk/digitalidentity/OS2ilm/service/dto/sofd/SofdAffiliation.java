@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
@@ -15,14 +16,19 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SofdAffiliation {
 	private String master;
 	private String masterId;
 	private String uuid;
+	private String employeeId;
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") private String startDate;
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") private String stopDate;
 	private String positionName;
+	private String positionShort;
 	private String affiliationType;
 	private String orgUnitUuid;
+	private boolean inheritPrivileges;
+	private Boolean deleted;
 }

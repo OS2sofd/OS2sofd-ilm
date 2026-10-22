@@ -1,8 +1,10 @@
 package dk.digitalidentity.OS2ilm.service;
 
 import dk.digitalidentity.OS2ilm.model.dao.AdUserDao;
+import dk.digitalidentity.OS2ilm.model.entity.ActivationTimeFrame;
 import dk.digitalidentity.OS2ilm.model.entity.AdUser;
 import dk.digitalidentity.OS2ilm.model.entity.Employee;
+import dk.digitalidentity.OS2ilm.model.entity.enums.SofdSyncStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +25,8 @@ public class AdUserService {
 	}
 
 	public void delete(AdUser adUser) {
-		adUserDao.delete(adUser);
+		adUser.setDeleted(true);
+		adUserDao.save(adUser);
 	}
 
 	public List<AdUser> findAll() {
@@ -42,16 +45,23 @@ public class AdUserService {
 		return adUserDao.findByNameStartingWith(prefix);
 	}
 
-	public List<AdUser> findByStartDateBeforeAndEnabledFalse(LocalDate startDate) {
-		return adUserDao.findByStartDateBeforeAndEnabledFalse(startDate);
+	public List<AdUser> findByStartDateLessThanEqualAndEnabledFalse(LocalDate startDate) {
+		return adUserDao.findByStartDateLessThanEqualAndEnabledFalse(startDate);
 	}
 
-	public List<AdUser> findByStopDateBeforeAndEnabledTrue(LocalDate stopDate) {
-		return adUserDao.findByStopDateBeforeAndEnabledTrue(stopDate);
+	public List<AdUser> findByStopDateLessThanEqualAndEnabledTrue(LocalDate stopDate) {
+		return adUserDao.findByStopDateLessThanEqualAndEnabledTrue(stopDate);
 	}
 
 	public void saveAll(Iterable<AdUser> adUsers) {
 		adUserDao.saveAll(adUsers);
 	}
 
+	public List<AdUser> findAdUsersByActivationTimeFrame(ActivationTimeFrame activationTimeFrame) {
+		return adUserDao.findAdUsersByActivationTimeFrame(activationTimeFrame);
+	}
+
+	public List<AdUser> findBySofdSyncStatus(SofdSyncStatus sofdSyncStatus) {
+		return adUserDao.findBySofdSyncStatus(sofdSyncStatus);
+	}
 }

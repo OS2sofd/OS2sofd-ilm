@@ -1,16 +1,27 @@
+import initializeDataTable from "../../fragments/dataTableService.js";
+
 var token = $("meta[name='_csrf']").attr("content");
-var auditLogService;
+let auditLogService;
 
 $(document).ready(function() {
     auditLogService = new AuditLogService();
-    auditLogService.init();
+    const evenLog = $('#eventLog');
+    if (evenLog) {
+        auditLogService.initEventLog();
+    }
+
+    const correlatedTable = $('#correlatedTable');
+    if (correlatedTable) {
+        auditLogService.initCorrelatedTable();
+    }
+
     auditLogService.loadDetails();
+    initAuditLogButtons();
 });
 
 function AuditLogService() {
-
-    this.init = function () {
-        var auditLogTable = $('#eventlog').DataTable({
+    this.initEventLog = function () {
+        let auditLogTable = $('#eventLog').DataTable({
             "serverSide": true,
             "destroy": true,
             "order": [[0, 'desc']],
@@ -43,7 +54,12 @@ function AuditLogService() {
                 }
             },
             "columns": [
-                { "data": 'tts'},
+                { "data": 'tts', 'render': function (data, type, row) {
+                    const [datePart, timePart] = data.split('T');
+                    const [year, month, day] = datePart.split('-');
+
+                    return `${day}/${month}/${year} ${timePart}`;
+                }},
                 { "data": 'performerName'},
                 { "data": 'targetName'},
                 { "data": 'logAction'},
@@ -52,12 +68,18 @@ function AuditLogService() {
                     if (!row.detailId) {
                         return '';
                     }
-                    return '<a data-id="' + row.id + '" onclick="auditLogService.openDetails(this)"><em class="fa fa-search"></em></a>';
+                    return '<a data-id="' + row.id + '" class="openDetailsBtn"><em class="fa fa-search"></em></a>';
                 }}
+            ],
+            'columnDefs': [
+                {
+                    'targets': 5,
+                    'orderable': false,
+                }
             ]
         });
         $.each($('.input-filter', auditLogTable.table().footer()), function() {
-            var column = auditLogTable.column($(this).index());
+            const column = auditLogTable.column($(this).index());
 
             $('input, select', this).on('keyup change', function () {
                 if (column.search() !== this.value) {
@@ -67,44 +89,56 @@ function AuditLogService() {
         });
     }
 
-    this.downloadReport = function () {
-        let mode = $('#auditInterval').val();
-        $.ajax({
-            method : "POST",
-            url: "/rest/admin/download/log/" + mode ,
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            xhrFields: {
-                responseType: 'blob'
-            },
-            success: function(data, textStatus, jqXHR) {
-                toastr.success("Download startet");
-                var blob = new Blob([data], { type: 'application/zip' });
-                var link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.download = 'Auditlogs.zip';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                toastr.warning("Fejl under download af rapport!");
-            }
+    this.initCorrelatedTable = function () {
+        initializeDataTable('#correlatedTable', token, {
+            'columnDefs': [{
+                'targets': 4,
+                'orderable': false
+            }]
         });
     }
 
-    this.openDetails = function (obj) {
-        let id = $(obj).data("id");
-        window.location.href = "/admin/auditlog/details/" + id;
+    this.downloadReport = async function () {
+        let mode = $('#auditInterval').val();
+        try {
+            const url = `/rest/admin/download/log/${mode}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    "content-type": "application/json",
+                    'X-CSRF-TOKEN': token
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            const blob = await response.blob();
+            toastr.success("Download startet");
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Auditlogs.zip';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(link.href);
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message);
+        }
+    }
+
+    this.openDetails = function (id) {
+        location.href = `/admin/auditlog/details/${id}`;
     }
 
     this.loadDetails = function () {
-
-        var txtArea1 = document.getElementById("detailContent");
+        const txtArea1 = document.getElementById("detailContent");
         if (txtArea1) {
-            var editor_one = CodeMirror.fromTextArea(txtArea1, {
+            let editor_one = CodeMirror.fromTextArea(txtArea1, {
                 lineNumbers: true,
                 matchBrackets: true,
                 styleActiveLine: true,
@@ -115,9 +149,30 @@ function AuditLogService() {
         }
     }
 
-    this.findAssociatedLogs = function (obj) {
-        let id = $(obj).data("id");
-        window.location.href = "/admin/auditlog/correlated/" + id;
+    this.findAssociatedLogs = function (id) {
+        globalThis.location.href = "/admin/auditlog/correlated/" + id;
     }
+}
 
+function initAuditLogButtons() {
+    $(document).on('click', (e) => {
+        const target = e.target;
+
+        const btnId = target.id || target.closest('[id]')?.id;
+
+        switch (btnId) {
+            case 'downloadReport':
+                auditLogService.downloadReport()
+                break;
+            case 'findAssociatedLogsBtn': {
+                const id = target.closest('#findAssociatedLogsBtn').dataset.id;
+                auditLogService.findAssociatedLogs(id);
+            }
+        }
+
+        if (target.classList.contains('openDetailsBtn') || target.closest('.openDetailsBtn')) {
+            const id = target.closest('.openDetailsBtn').dataset.id;
+            auditLogService.openDetails(id);
+        }
+    })
 }

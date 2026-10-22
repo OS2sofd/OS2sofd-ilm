@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class UserRoleNotFoundException extends RuntimeException {
+	private static final long serialVersionUID = 3060599444396684720L;
+
 	public UserRoleNotFoundException(long id) {
 		super("UserRole with id " + id + " not found");
 	}

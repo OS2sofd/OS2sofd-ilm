@@ -1,24 +1,25 @@
 package dk.digitalidentity.OS2ilm.controller.rest;
 
-import dk.digitalidentity.OS2ilm.TestContainerConfiguration;
-import org.junit.jupiter.api.Test;
-import org.reflections.Reflections;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.annotation.RestController;
+import static org.hibernate.validator.internal.util.Contracts.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static org.hibernate.validator.internal.util.Contracts.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.junit.jupiter.api.Test;
+import org.reflections.Reflections;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.RestController;
+
+import dk.digitalidentity.OS2ilm.TestContainerConfiguration;
 
 // Tests to ensure that our RestControllers are protected with the right annotations
 @AutoConfigureMockMvc
@@ -41,6 +42,7 @@ class RestControllerSecurityTest {
         assertUrlProtected("/rest/search");
         assertUrlProtected("/rest/profile");
         assertUrlProtected("/rest/register");
+        assertUrlProtected("/rest/leader");
     }
 
     @Test
@@ -71,6 +73,6 @@ class RestControllerSecurityTest {
     public void assertUrlProtected(final String url) throws Exception {
         mockMvc.perform(get(url))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("http://localhost/discovery"));
+                .andExpect(redirectedUrl("/discovery"));
     }
 }

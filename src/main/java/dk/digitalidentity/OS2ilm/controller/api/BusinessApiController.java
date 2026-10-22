@@ -1,12 +1,7 @@
 package dk.digitalidentity.OS2ilm.controller.api;
 
-import dk.digitalidentity.OS2ilm.model.entity.Business;
-import dk.digitalidentity.OS2ilm.service.BusinessService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,11 +10,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import dk.digitalidentity.OS2ilm.model.entity.Business;
+import dk.digitalidentity.OS2ilm.service.BusinessService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 
 @RequestMapping("/api/business")
 @Tag(name = "Business API", description = "Endpoints for managing businesses")
-@Slf4j
 @RequiredArgsConstructor
 @RestController
 public class BusinessApiController {
@@ -61,7 +60,6 @@ public class BusinessApiController {
 			if (business == null) {
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
-			// TODO: Add logging
 			businessService.delete(business);
 			return new ResponseEntity<>(HttpStatus.OK);
 		}

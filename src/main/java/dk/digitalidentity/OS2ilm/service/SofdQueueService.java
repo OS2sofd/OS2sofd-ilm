@@ -1,66 +1,82 @@
 package dk.digitalidentity.OS2ilm.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
-import dk.digitalidentity.OS2ilm.model.entity.Employee;
-import dk.digitalidentity.OS2ilm.model.entity.enums.EmployeeStatus;
-import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdAffiliation;
-import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdPerson;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import dk.digitalidentity.OS2ilm.model.entity.AdGroup;
+import dk.digitalidentity.OS2ilm.model.entity.AdUser;
+import dk.digitalidentity.OS2ilm.model.entity.dto.DeleteEmployeeLogRecord;
+import dk.digitalidentity.OS2ilm.model.entity.enums.LogAction;
+import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdPhone;
 import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdUser;
-import dk.digitalidentity.simple_queue.QueueMessage;
-import dk.digitalidentity.simple_queue.SimpleMessageHandler;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Objects;
-import java.util.Set;
+import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
+import dk.digitalidentity.OS2ilm.model.entity.Employee;
+import dk.digitalidentity.OS2ilm.model.entity.enums.EmployeeStatus;
+import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdAffiliation;
+import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdPerson;
+import dk.digitalidentity.OS2ilm.queue.RetryableMessageHandler;
+import dk.digitalidentity.simple_queue.QueueMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+
+import static dk.digitalidentity.OS2ilm.util.QueueUtils.getSofdHeaders;
+import static dk.digitalidentity.OS2ilm.util.QueueUtils.maskCpr;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class SofdQueueService implements SimpleMessageHandler {
+public class SofdQueueService extends RetryableMessageHandler {
 	private static final String QUEUE_IDENTIFIER = "sofdQueue";
-	private static final String APPLICATION_JSON = "application/json";
+	private static final int MAX_ATTEMPTS = 5;
 	private static final String SOFD_MASTER_IDENTIFIER="OS2ILM";
-	private static final String ACTIVE_DIRECTORY_USER_TYPE = "ACTIVE_DIRECTORY";
-	public enum Type { CREATE, UPDATE }
 
 	private final IlmConfiguration configuration;
-	private final ApplicationEventPublisher eventPublisher;
 	private final EmployeeService employeeService;
+	private final QueueHelperService queueHelperService;
+	private final RestTemplate restTemplate;
+	private final AuditLogService auditLogService;
 
-	@Autowired
-	private RestTemplate restTemplate;
+	public SofdQueueService(ApplicationEventPublisher eventPublisher,
+			IlmConfiguration configuration, EmployeeService employeeService,
+			QueueHelperService queueHelperService, RestTemplate restTemplate, AuditLogService auditLogService) {
+		super(QUEUE_IDENTIFIER, MAX_ATTEMPTS, eventPublisher);
+		this.configuration = configuration;
+		this.employeeService = employeeService;
+		this.queueHelperService = queueHelperService;
+		this.restTemplate = restTemplate;
+		this.auditLogService = auditLogService;
+	}
 
 	private void createPerson(SofdPerson person) {
 		log.info("Creating new person in SOFD with CPR: {}", maskCpr(person.getCpr()));
 		log.debug("Person creation request payload: firstname={}, surname={}, master={}",
 				person.getFirstname(), person.getSurname(), person.getMaster());
 
-		HttpHeaders headers = getHeaders();
+		HttpHeaders headers = getSofdHeaders(configuration.getSofd().getApiKey());
 		HttpEntity<SofdPerson> request = new HttpEntity<>(person, headers);
 
 		String apiUrl = configuration.getSofd().getUrl() + "/api/v2/persons";
 		log.debug("Sending POST request to SOFD API: {}", apiUrl);
 
 		try {
-			ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
-			log.info("SOFD API response for person creation: status={}, body_length={}",
-					response.getStatusCode(), response.getBody() != null ? response.getBody().length() : 0);
+			ResponseEntity<SofdPerson> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, SofdPerson.class);
+			log.info("SOFD API response for person creation: status={}", response.getStatusCode());
 			log.debug("Full SOFD API response body: {}", response.getBody());
 
 			if (response.getStatusCode() != HttpStatus.CREATED) {
@@ -68,8 +84,17 @@ public class SofdQueueService implements SimpleMessageHandler {
 				throw new RuntimeException("Failed to create person in SOFD: " + response.getStatusCode().value());
 			}
 
-			log.debug("Person successfully created in SOFD, updating local employee status");
-			Employee employee = employeeService.findByCpr(person.getCpr());
+			log.debug("Person successfully created in SOFD, creating ADUser");
+			Employee employee = employeeService.findByCprWithUserRolesAndAdGroupsAndRoleGroups(person.getCpr());
+			if (employee == null) {
+				log.warn("Employee for CPR {} no longer exists - skipping AD user creation", maskCpr(person.getCpr()));
+				return;
+			}
+			if (employee.getUser() == null) {
+				createUser(employee, employee.getExtUuid());
+			}
+
+			log.debug("Person successfully created in AD, updating local employee");
 			employee.setIntegrated(EmployeeStatus.AWAITING_RC_INTEGRATION);
 			employeeService.save(employee);
 			log.info("Employee status updated to AWAITING_RC_INTEGRATION for CPR: {}", maskCpr(person.getCpr()));
@@ -85,19 +110,19 @@ public class SofdQueueService implements SimpleMessageHandler {
 		}
 	}
 
-	private void updateExistingPerson(SofdPerson person, SofdPerson existingPerson) {
+	private void updateExistingPerson(SofdPerson ilmPerson, SofdPerson sofdPerson, boolean markedForDeletion) {
 		log.info("Updating existing person in SOFD with CPR: {}, UUID: {}",
-				maskCpr(person.getCpr()), existingPerson.getUuid());
+				maskCpr(ilmPerson.getCpr()), sofdPerson.getUuid());
 
-		log.debug("Starting person update process: updating basic info, users, and affiliations");
-		updatePerson(person, existingPerson);
-		updateUsers(person, existingPerson);
-		updateAffiliations(person, existingPerson);
+		log.debug("Starting person update process: updating basic info and affiliations");
+		updatePerson(ilmPerson, sofdPerson);
+		updateAffiliations(ilmPerson, sofdPerson, markedForDeletion);
+		updatePhone(ilmPerson, sofdPerson);
 
-		HttpHeaders headers = getHeaders();
-		HttpEntity<SofdPerson> request = new HttpEntity<>(existingPerson, headers);
+		HttpHeaders headers = getSofdHeaders(configuration.getSofd().getApiKey());
+		HttpEntity<SofdPerson> request = new HttpEntity<>(sofdPerson, headers);
 
-		String apiUrl = configuration.getSofd().getUrl() + "/api/v2/persons/" + person.getUuid();
+		String apiUrl = configuration.getSofd().getUrl() + "/api/v2/persons/" + ilmPerson.getUuid();
 		log.debug("Sending PATCH request to SOFD API: {}", apiUrl);
 
 		ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.PATCH, request, String.class);
@@ -107,26 +132,57 @@ public class SofdQueueService implements SimpleMessageHandler {
 
 		if (!response.getStatusCode().is2xxSuccessful() && !response.getStatusCode().is3xxRedirection()) {
 			log.error("Person update failed for UUID: {}, status_code: {}, response: {}",
-					person.getUuid(), response.getStatusCode().value(), response.getBody());
+					ilmPerson.getUuid(), response.getStatusCode().value(), response.getBody());
 			throw new RuntimeException("Failed to update person in SOFD: " + response.getStatusCode().value());
 		}
 
-		Employee employee = employeeService.findByCpr(person.getCpr());
-		if (EmployeeStatus.AWAITING_FULL_INTEGRATION.equals(employee.getIntegrated())) {
-			employee.setIntegrated(EmployeeStatus.AWAITING_RC_INTEGRATION);
-			employeeService.save(employee);
-			log.info("Employee status updated to AWAITING_RC_INTEGRATION for CPR: {}", maskCpr(person.getCpr()));
+		if (markedForDeletion) {
+			log.info("Successfully removed affiliation in SOFD for UUID: {}", ilmPerson.getUuid());
+			return;
 		}
 
-		log.info("Person successfully updated in SOFD for UUID: {}", person.getUuid());
+		// Now that the user is synchronized, we need to create the AD-user for them if they don't have one yet
+		Employee employee = employeeService.findByCprWithUserRolesAndAdGroupsAndRoleGroups(ilmPerson.getCpr());
+		if (employee == null) {
+			log.warn("Employee for CPR {} no longer exists - skipping AD user creation", maskCpr(ilmPerson.getCpr()));
+			return;
+		}
+		if (employee.getUser() == null) {
+			createUser(employee, sofdPerson.getUuid());
+		}
+
+		// Finally, the status can be set to awaiting role catalogue integration since everything else is taken care of.
+		// We also update the extUuid (previously randomly generated) because we need to call sofd with it.
+		if (EmployeeStatus.AWAITING_FULL_INTEGRATION.equals(employee.getIntegrated())) {
+			employee.setIntegrated(EmployeeStatus.AWAITING_RC_INTEGRATION);
+			employee.setExtUuid(ilmPerson.getUuid());
+			employeeService.save(employee);
+			log.info("Employee status updated to AWAITING_RC_INTEGRATION for CPR: {}", maskCpr(ilmPerson.getCpr()));
+		}
+
+		log.info("Person successfully updated in SOFD for UUID: {}", ilmPerson.getUuid());
 	}
 
-	private static void updateAffiliations(SofdPerson person, SofdPerson existingPerson) {
+	private void createUser(Employee employee, String existingPerson) {
+		List<Long> groupIds = new ArrayList<>();
+		if (employee.getAdGroups() != null && !employee.getAdGroups().isEmpty()) {
+			groupIds = employee.getAdGroups().stream().map(AdGroup::getId).toList();
+		}
+
+		Long activationId = null;
+		if (employee.getActivationTimeFrame() != null) {
+			activationId = employee.getActivationTimeFrame().getId();
+		}
+
+		queueHelperService.adCreateHelper(employee.getId(), activationId, groupIds, existingPerson);
+	}
+
+	private static void updateAffiliations(SofdPerson ilmPerson, SofdPerson sofdPerson, boolean markDeleted) {
 		log.debug("Starting affiliation update process");
 
-		Set<SofdAffiliation> affiliations = existingPerson.getAffiliations();
-		if (person.getAffiliations() != null && !person.getAffiliations().isEmpty()) {
-			SofdAffiliation sofdAffiliation = person.getAffiliations().stream().findFirst().get();
+		Set<SofdAffiliation> affiliations = sofdPerson.getAffiliations();
+		if (ilmPerson.getAffiliations() != null && !ilmPerson.getAffiliations().isEmpty()) {
+			SofdAffiliation sofdAffiliation = ilmPerson.getAffiliations().stream().findFirst().get();
 			log.debug("Processing affiliation update: masterId={}, orgUnitUuid={}, positionName={}",
 					sofdAffiliation.getMasterId(), sofdAffiliation.getOrgUnitUuid(), sofdAffiliation.getPositionName());
 
@@ -134,8 +190,9 @@ public class SofdQueueService implements SimpleMessageHandler {
 			if (affiliations != null) {
 				log.debug("Searching for existing affiliation in {} total affiliations", affiliations.size());
 				for (SofdAffiliation affiliation : affiliations) {
-					if (!SOFD_MASTER_IDENTIFIER.equals(affiliation.getMaster()) ||
-							!Objects.equals(affiliation.getMasterId(), sofdAffiliation.getMasterId())) {
+					boolean isILMMaster = SOFD_MASTER_IDENTIFIER.equals(affiliation.getMaster());
+					boolean isCorrectAffiliationId = Objects.equals(affiliation.getUuid(), sofdAffiliation.getUuid());
+					if (!isILMMaster || !isCorrectAffiliationId) {
 						continue;
 					}
 					existingAffiliation = affiliation;
@@ -152,15 +209,23 @@ public class SofdQueueService implements SimpleMessageHandler {
 				existingAffiliation.setUuid(sofdAffiliation.getUuid());
 				existingAffiliation.setAffiliationType(sofdAffiliation.getAffiliationType());
 
-				existingPerson.getAffiliations().add(existingAffiliation);
+				sofdPerson.getAffiliations().add(existingAffiliation);
 			} else {
 				log.debug("Updating existing affiliation for masterId: {}", sofdAffiliation.getMasterId());
 			}
 
+			existingAffiliation.setEmployeeId(sofdAffiliation.getEmployeeId());
 			existingAffiliation.setStartDate(sofdAffiliation.getStartDate());
 			existingAffiliation.setStopDate(sofdAffiliation.getStopDate());
 			existingAffiliation.setPositionName(sofdAffiliation.getPositionName());
 			existingAffiliation.setOrgUnitUuid(sofdAffiliation.getOrgUnitUuid());
+			existingAffiliation.setInheritPrivileges(sofdAffiliation.isInheritPrivileges());
+
+			// Only ever flips to true, and only on this one matched affiliation - a person can have several
+			// affiliations from other masters (SD-LØN, OPUS, ...) that ILM must never touch.
+			if (markDeleted) {
+				existingAffiliation.setDeleted(true);
+			}
 
 			log.debug("Affiliation updated: startDate={}, stopDate={}, positionName={}",
 					existingAffiliation.getStartDate(), existingAffiliation.getStopDate(), existingAffiliation.getPositionName());
@@ -169,70 +234,127 @@ public class SofdQueueService implements SimpleMessageHandler {
 		}
 	}
 
-	private static void updateUsers(SofdPerson ilmPerson, SofdPerson sofdPerson) {
-		log.debug("Starting user update process");
+	private static void updatePhone(SofdPerson ilmPerson, SofdPerson sofdPerson) {
+		log.debug("Starting phone update process");
 
-		Set<SofdUser> sofdUsers = sofdPerson.getUsers();
-		if (ilmPerson.getUsers() != null && !ilmPerson.getUsers().isEmpty()) {
-			SofdUser ilmUser = ilmPerson.getUsers().stream().findFirst().get();
-			log.debug("Processing user update: masterId={}, userId={}, userType={}",
-					ilmUser.getMasterId(), ilmUser.getUserId(), ilmUser.getUserType());
+		if (ilmPerson.getPhones() == null || ilmPerson.getPhones().isEmpty()) {
+			log.debug("No phone in the incoming person data, nothing to update");
+			return;
+		}
 
-			SofdUser existingUser = null;
-			if (sofdUsers != null) {
-				log.debug("Searching for existing user in {} total users", sofdUsers.size());
-				for (SofdUser sofdUser : sofdUsers) {
-					if (!SOFD_MASTER_IDENTIFIER.equals(sofdUser.getMaster()) ||
-							!ACTIVE_DIRECTORY_USER_TYPE.equals(sofdUser.getUserType()) ||
-							!Objects.equals(sofdUser.getMasterId(), ilmUser.getMasterId())) {
-						continue;
-					}
-					existingUser = sofdUser;
-					log.debug("Found existing user with masterId: {}", sofdUser.getMasterId());
-					break;
-				}
-			}
+		SofdPhone ilmPhone = ilmPerson.getPhones().stream().findFirst().get();
+		if (ilmPhone.getPhoneNumber() == null || ilmPhone.getPhoneNumber().isBlank()) {
+			log.debug("Incoming phone has no number, nothing to update");
+			return;
+		}
 
-			if (existingUser == null) {
-				log.info("Creating new user for masterId: {}, userId: {}", ilmUser.getMasterId(), ilmUser.getUserId());
-				existingUser = new SofdUser();
-				existingUser.setUserType(ilmUser.getUserType());
-				existingUser.setUuid(ilmUser.getUuid());
-				existingUser.setMaster(ilmUser.getMaster());
-				existingUser.setMasterId(ilmUser.getMasterId());
-				existingUser.setUserId(ilmUser.getUserId());
-				sofdPerson.getUsers().add(existingUser);
-			} else {
-				log.debug("User already exists for masterId: {}, no additional updates needed", ilmUser.getMasterId());
-			}
-		} else {
-			log.debug("No users to update in the incoming person data");
+		// A person can have several phones in SOFD (from different masters), so we must never replace the set
+		if (sofdPerson.getPhones() == null) {
+			sofdPerson.setPhones(new HashSet<>());
+		}
+		Set<SofdPhone> phones = sofdPerson.getPhones();
+
+		// If the number already exists in SOFD (regardless of master) there is nothing to do
+		boolean numberExists = phones.stream().anyMatch(p -> ilmPhone.getPhoneNumber().trim().equals(p.getPhoneNumber() == null ? null : p.getPhoneNumber().trim()));
+		if (numberExists) {
+			log.debug("Phone number already exists in SOFD, skipping");
+			return;
+		}
+
+		// ILM only ever owns one phone, so if SOFD has an ILM-mastered phone, that is the one that changed
+		SofdPhone existingIlmPhone = phones.stream()
+				.filter(p -> SOFD_MASTER_IDENTIFIER.equals(p.getMaster()))
+				.findFirst()
+				.orElse(null);
+
+		if (existingIlmPhone != null) {
+			log.info("Updating ILM-mastered phone number in SOFD");
+			existingIlmPhone.setPhoneNumber(ilmPhone.getPhoneNumber());
+			existingIlmPhone.setPhoneType(ilmPhone.getPhoneType());
+		}
+		else {
+			log.info("Creating new phone in SOFD");
+			phones.add(ilmPhone);
 		}
 	}
 
-	private static void updatePerson(SofdPerson person, SofdPerson existingPerson) {
+	private static void updatePerson(SofdPerson ilmPerson, SofdPerson sofdPerson) {
 		log.debug("Starting person basic info update");
 
-		if (SOFD_MASTER_IDENTIFIER.equals(existingPerson.getMaster())) {
+		if (SOFD_MASTER_IDENTIFIER.equals(sofdPerson.getMaster())) {
 			log.debug("Person has OS2ILM master, updating basic information: firstname={} -> {}, surname={} -> {}",
-					existingPerson.getFirstname(), person.getFirstname(),
-					existingPerson.getSurname(), person.getSurname());
+					sofdPerson.getFirstname(), ilmPerson.getFirstname(),
+					sofdPerson.getSurname(), ilmPerson.getSurname());
 
-			existingPerson.setFirstname(person.getFirstname());
-			existingPerson.setSurname(person.getSurname());
-			existingPerson.setLastChanged(person.getLastChanged());
-			existingPerson.setChosenName(person.getChosenName());
+			sofdPerson.setFirstname(ilmPerson.getFirstname());
+			sofdPerson.setSurname(ilmPerson.getSurname());
+			sofdPerson.setLastChanged(ilmPerson.getLastChanged());
+			sofdPerson.setChosenName(ilmPerson.getChosenName());
 
 			log.debug("Person basic info updated successfully");
 		} else {
-			log.debug("Person has different master ({}), skipping basic info update", existingPerson.getMaster());
+			log.debug("Person has different master ({}), skipping basic info update", sofdPerson.getMaster());
 		}
+	}
+
+	public boolean patchEmployeeIdForAdUser(AdUser adUser) {
+		Employee employee = adUser.getEmployee();
+		if (employee == null || employee.getCpr() == null || employee.getCpr().isBlank()) {
+			log.warn("Cannot patch employeeId: missing employee or CPR for adUser {}", adUser.getName());
+			return false;
+		}
+
+		SofdPerson existingPerson = fetchPerson(employee.getCpr());
+		if (existingPerson == null) {
+			log.info("Person not yet in SOFD for CPR: {} - retrying later", maskCpr(employee.getCpr()));
+			return false;
+		}
+
+		Set<SofdUser> existingUsers = existingPerson.getUsers();
+		if (existingUsers == null || existingUsers.isEmpty()) {
+			log.info("SOFD has no users yet for CPR: {} - retrying later", maskCpr(employee.getCpr()));
+			return false;
+		}
+
+		SofdUser targetUser = existingUsers.stream()
+				.filter(u -> Objects.equals(u.getUserId(), adUser.getName()))
+				.findFirst()
+				.orElse(null);
+		if (targetUser == null) {
+			log.info("AD user {} not yet synced to SOFD - retrying later", adUser.getName());
+			return false;
+		}
+
+		targetUser.setEmployeeId(employee.getExtAffiliationUuid());
+
+		HttpHeaders headers = getSofdHeaders(configuration.getSofd().getApiKey());
+		HttpEntity<SofdPerson> request = new HttpEntity<>(existingPerson, headers);
+
+		String apiUrl = configuration.getSofd().getUrl() + "/api/v2/persons/" + existingPerson.getUuid();
+		log.debug("Sending PATCH to set employeeId on user {}: {}", adUser.getName(), apiUrl);
+
+		try {
+			ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.PATCH, request, String.class);
+			if (!response.getStatusCode().is2xxSuccessful() && !response.getStatusCode().is3xxRedirection()) {
+				log.warn("SOFD returned non-success patching employeeId for user {}: status={}", adUser.getName(), response.getStatusCode().value());
+				return false;
+			}
+		} catch (RestClientException e) {
+			log.warn("Transient error patching employeeId for AD user {}: {}", adUser.getName(), e.getMessage());
+			return false;
+		}
+
+		adUser.setExtUuid(targetUser.getUuid());
+
+		log.info("Successfully patched employeeId on SOFD user {} for CPR: {}",
+				adUser.getName(), maskCpr(employee.getCpr()));
+		return true;
 	}
 
 	private SofdPerson fetchPerson(String cpr) {
 		log.debug("Fetching person from SOFD by CPR: {}", maskCpr(cpr));
 
-		HttpHeaders headers = getHeaders();
+		HttpHeaders headers = getSofdHeaders(configuration.getSofd().getApiKey());
 		HttpEntity<SofdPerson> request = new HttpEntity<>(headers);
 
 		String apiUrl = configuration.getSofd().getUrl() + "/api/v2/persons/byCpr/" + cpr;
@@ -255,11 +377,10 @@ public class SofdQueueService implements SimpleMessageHandler {
 		switch (response.getStatusCode()) {
 			case HttpStatus.OK -> {
 				SofdPerson fetchedPerson = response.getBody();
-				log.info("Person found in SOFD: UUID={}, master={}, affiliations_count={}, users_count={}",
+				log.info("Person found in SOFD: UUID={}, master={}, affiliations_count={}",
 						fetchedPerson != null ? fetchedPerson.getUuid() : null,
 						fetchedPerson != null ? fetchedPerson.getMaster() : null,
-						fetchedPerson != null && fetchedPerson.getAffiliations() != null ? fetchedPerson.getAffiliations().size() : 0,
-						fetchedPerson != null && fetchedPerson.getUsers() != null ? fetchedPerson.getUsers().size() : 0);
+						fetchedPerson != null && fetchedPerson.getAffiliations() != null ? fetchedPerson.getAffiliations().size() : 0);
 				return fetchedPerson;
 			}
 			case HttpStatus.NOT_FOUND -> {
@@ -273,58 +394,43 @@ public class SofdQueueService implements SimpleMessageHandler {
 		}
 	}
 
-	private HttpHeaders getHeaders() {
-		log.debug("Creating HTTP headers for SOFD API request");
-		HttpHeaders headers = new HttpHeaders();
-		headers.add("ApiKey", configuration.getSofd().getApiKey());
-		headers.add("Content-Type", APPLICATION_JSON);
-		headers.add("Accept", APPLICATION_JSON);
-
-		return headers;
-	}
-
-	/**
-	 * Simple queue uses this to check if we can handle the message
-	 * @param message
-	 * @return
-	 */
-	@Override
-	public boolean handles(QueueMessage message) {
-		boolean canHandle = QUEUE_IDENTIFIER.equals(message.getQueue());
-		log.debug("Queue message handler check: queue={}, can_handle={}", message.getQueue(), canHandle);
-		return canHandle;
-	}
-
 	/**
 	 * This is where we handle the message
 	 * @param message
 	 * @return Use Return true to remove message from queue, return false to keep it
 	 */
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public boolean handleMessage(QueueMessage message) {
 		log.info("Processing queue message: priority={}", message.getPriority());
 		log.debug("Queue message body length: {}", message.getBody() != null ? message.getBody().length() : 0);
 
 		try {
-			SofdMessageRequest sofdMessageRequest = stringToObject(message.getBody());
+			QueueHelperService.SofdMessageRequest sofdMessageRequest = stringToObject(message.getBody());
 			log.info("Parsed queue message: person_cpr={}",
-					maskCpr(sofdMessageRequest.person.getCpr()));
+					maskCpr(sofdMessageRequest.person().getCpr()));
 
-			SofdPerson existingPerson = fetchPerson(sofdMessageRequest.person.getCpr());
-			if (existingPerson != null) {
+			boolean forDeletion = sofdMessageRequest.deleteEmployeeIdAfterSync() != null;
+
+			SofdPerson sofdPerson = fetchPerson(sofdMessageRequest.person().getCpr());
+			if (sofdPerson != null) {
 				log.info("Person exists in SOFD, proceeding with update");
-				sofdMessageRequest.person.setUuid(existingPerson.getUuid());
-				updateExistingPerson(sofdMessageRequest.person, existingPerson);
+				sofdMessageRequest.person().setUuid(sofdPerson.getUuid());
+				updateExistingPerson(sofdMessageRequest.person(), sofdPerson, forDeletion);
 			}
 			else {
 				log.info("Person does not exist in SOFD, proceeding with creation");
-				createPerson(sofdMessageRequest.person);
+				createPerson(sofdMessageRequest.person());
+			}
+
+			if (forDeletion) {
+				finalizeEmployeeDeletion(sofdMessageRequest.deleteEmployeeIdAfterSync(), sofdMessageRequest.performerId(), sofdMessageRequest.performerName());
 			}
 
 			log.info("Queue message processed successfully");
-			return true;
+			return CONSUMED;
 		}
-		catch (JsonProcessingException ex) {
+		catch (JacksonException ex) {
 			log.error("JSON processing error while handling queue message: error={}",
 					 ex.getMessage(), ex);
 			throw new RuntimeException("Kan ikke sende opdatere person i SOFD - json processing", ex);
@@ -336,92 +442,24 @@ public class SofdQueueService implements SimpleMessageHandler {
 		}
 	}
 
-	/**
-	 * Any failed message from this queue lands here
-	 * @param message
-	 * @param exception
-	 * @return Use return true to indicate it has been handled, return false if message should be placed in the DEADLETTER queue
-	 */
-	@Override
-	public boolean handleFailedMessage(QueueMessage message, Exception exception) {
-		log.error("Queue message failed processing: queue={}, priority={}, error={}",
-				message.getQueue(), message.getPriority(), exception.getMessage(), exception);
-		log.debug("Failed message body: {}", message.getBody());
-		return false;
-	}
-
-	public record SofdMessageRequest(SofdPerson person) { }
-
-	public boolean addMessageToQueue(SofdMessageRequest message) throws NullPointerException, IllegalArgumentException {
-		log.info("Adding message to SOFD queue: person_cpr={}",
-				maskCpr(message.person.getCpr()));
-		log.debug("Queue message details: firstname={}, surname={}, master={}",
-				message.person.getFirstname(), message.person.getSurname(), message.person.getMaster());
-
-		validateMessage(message);
-
-		try {
-			QueueMessage queueMessage = QueueMessage.builder()
-					.queue(QUEUE_IDENTIFIER)
-					.priority(1L)
-					.body(objectToJson(message))
-					.build();
-
-			log.debug("Publishing queue message event: queue={}, priority={}, body_length={}",
-					QUEUE_IDENTIFIER, queueMessage.getPriority(), queueMessage.getBody().length());
-
-			eventPublisher.publishEvent(queueMessage);
-			log.info("Message successfully added to SOFD queue: person_cpr={}", maskCpr(message.person.getCpr()));
-		}
-		catch (Exception ex) {
-			log.error("Failed to add message to queue: person_cpr={}, error={}",
-					maskCpr(message.person.getCpr()), ex.getMessage(), ex);
-			return false;
+	// Final step of the employee deletion chain, run once the AD account is disabled and the SOFD
+	// affiliation stop has been confirmed - see ADQueueService's DISABLE case and sofdHelperForDeletion.
+	private void finalizeEmployeeDeletion(Long employeeId, String performerId, String performerName) {
+		Employee employee = employeeService.findById(employeeId);
+		if (employee == null) {
+			log.warn("Employee {} not found while finalizing deletion after SOFD sync", employeeId);
+			return;
 		}
 
-		return true;
+		auditLogService.log(performerId, performerName, employee.getId(), employee.getName(), LogAction.EMPLOYEE_DELETED, "Medarbejder blev slettet", new DeleteEmployeeLogRecord(employee.getId(), employee.getName(), employee.getEmail()));
+
+		employeeService.delete(employee);
+		log.info("Employee {} soft-deleted after AD disable and SOFD affiliation stop both succeeded", employeeId);
 	}
 
-	private static void validateMessage(SofdMessageRequest message) {
-		log.debug("Validating SOFD queue message");
-
-		Objects.requireNonNull(message);
-		Objects.requireNonNull(message.person);
-
-		SofdPerson person = message.person;
-		if (!StringUtils.hasText(person.getCpr()) ||
-				!StringUtils.hasText(person.getMaster()) ||
-				!StringUtils.hasText(person.getFirstname()) ||
-				!StringUtils.hasText(person.getSurname())
-		) {
-			log.error("Invalid person object: cpr_present={}, master_present={}, firstname_present={}, surname_present={}",
-					StringUtils.hasText(person.getCpr()),
-					StringUtils.hasText(person.getMaster()),
-					StringUtils.hasText(person.getFirstname()),
-					StringUtils.hasText(person.getSurname()));
-			throw new IllegalArgumentException("Invalid person object");
-		}
-
-		log.debug("Message validation completed successfully");
-	}
-
-	private String objectToJson(Object object) throws JsonProcessingException {
-		ObjectMapper objectMapper = new ObjectMapper();
-		String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
-		log.debug("Converted object to JSON: length={}", json.length());
-		return json;
-	}
-
-	private SofdMessageRequest stringToObject(String body) throws JsonProcessingException {
+	private QueueHelperService.SofdMessageRequest stringToObject(String body) throws JacksonException {
 		ObjectMapper mapper = new ObjectMapper();
 		log.debug("Converting JSON string to object: length={}", body.length());
-		return mapper.readValue(body, SofdMessageRequest.class);
-	}
-
-	/**
-	 * Masks CPR number for logging purposes while preserving some identifiable information
-	 */
-	private String maskCpr(String cpr) {
-		return "REDACTED_CPR";
+		return mapper.readValue(body, QueueHelperService.SofdMessageRequest.class);
 	}
 }

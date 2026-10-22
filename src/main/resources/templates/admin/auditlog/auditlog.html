@@ -28,12 +28,12 @@
                                         <option th:value="yearly">Årligt</option>
                                     </select>
                                     <span class="input-group-append">
-                                    <button class="btn btn-primary" id="downloadReport" type="button" onclick="auditLogService.downloadReport()"><em class="fa fa-fw fa-download"></em></button>
+                                    <button class="btn btn-primary" id="downloadReport" type="button"><em class="fa fa-fw fa-download"></em></button>
                                     </span>
                                 </div>
                             </div>
                             <div class="table-responsive">
-                                <table id="eventlog" class="table table-striped table-bordered table-hover" >
+                                <table id="eventLog" class="table table-striped table-bordered table-hover" >
                                     <thead>
                                     <tr>
                                         <th style="width: 110px;">Tidspunkt</th>
@@ -55,7 +55,7 @@
                                                 <option selected="selected" value="">Alle</option>
                                                 <option th:each="logAction : ${logactions}"
                                                         th:value="${logAction}"
-                                                        th:text="${logAction.message}">
+                                                        th:text="${logAction?.type.getTranslation()}">
                                                 </option>
                                             </select>
                                         </td>
@@ -76,7 +76,7 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/admin/auditlog/auditlog.js}"></script>
+<script type="module" th:src="@{/js/admin/auditlog/auditlog.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

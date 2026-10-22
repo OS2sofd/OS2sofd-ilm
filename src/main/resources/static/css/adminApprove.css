@@ -1,0 +1,52 @@
+/* Overriding i-Check styling because it's bad */
+div[class*="iradio_"] + label,
+div[class*="icheckbox_"] + label {
+    margin-left: 6px !important;
+}
+
+.section-block {
+    margin-bottom: 8px;
+}
+
+.section-block h4 {
+    margin-bottom: 4px;
+}
+
+.section-block > p {
+    margin-bottom: 14px;
+    color: #6c757d;
+}
+
+#title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10.5px;
+    margin-bottom: 10.5px;
+}
+
+.close {
+    float: right;
+    font-size: 21px;
+    font-weight: bold;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: 0.2;
+}
+
+.modal-header .close {
+    margin-bottom: 2px;
+}
+
+button.close {
+    padding: 0;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    -webkit-appearance: none;
+}
+
+.modal-header {
+    padding: 15px;
+    border-bottom: 1px solid #e5e5e5;
+}

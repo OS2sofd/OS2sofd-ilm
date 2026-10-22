@@ -1,5 +1,5 @@
 var token = $("meta[name='_csrf']").attr("content");
-var accountService;
+let accountService;
 
 $(document).ready(function() {
     accountService = new AccountService();
@@ -8,13 +8,25 @@ $(document).ready(function() {
 
 function AccountService() {
     this.init = function () {
-        var accTable = $('#accountTable').DataTable({
+        let accTable = $('#accountTable').DataTable({
             "destroy": true,
             "bSort": true,
             "paging": true,
             "pageLength": 25,
             "responsive": true,
+            "serverSide": true,
             "dom": "<'row'l<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            "ajax": {
+                "url": "/rest/admin/adAccounts/view",
+                "type": "POST",
+                "headers": {
+                    "X-CSRF-TOKEN": token
+                },
+                "data": function (d) {
+                    return JSON.stringify(d);
+                },
+                "contentType": "application/json"
+            },
             "language": {
                 "search": "Søg",
                 "lengthMenu": "_MENU_ rækker per side",
@@ -26,10 +38,19 @@ function AccountService() {
                     "previous": "Forrige",
                     "next": "Næste"
                 }
-            }
+            },
+            "columns": [
+                {"data": 'name', render: function (data, type, row) {
+                    return data;
+                }},
+                {"data": 'status'},
+                {"data": 'startDate'},
+                {"data": 'stopDate'},
+                {"data": 'adGroups'}
+            ]
         });
         $.each($('.input-filter', accTable.table().footer()), function () {
-            var column = accTable.column($(this).index());
+            const column = accTable.column($(this).index());
 
             $('input, select', this).on('keyup change', function () {
                 if (column.search() !== this.value) {

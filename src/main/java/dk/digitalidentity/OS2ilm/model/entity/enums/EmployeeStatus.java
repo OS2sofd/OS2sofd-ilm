@@ -1,5 +1,8 @@
 package dk.digitalidentity.OS2ilm.model.entity.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum EmployeeStatus {
 	AWAITING_FULL_INTEGRATION("Afventer at blive integreret"),
 	AWAITING_RC_INTEGRATION("er integreret i Sofd"),

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: header}"></head>
+<link rel="stylesheet" th:href="@{/css/landingPage.css}">
+<div th:replace="~{fragments/empty-navbar :: emptyTopBar}"></div>
+<body class="top-navigation gray-bg">
+<div class="loginColumns animated fadeInDown">
+
+    <div class="text-center mb-4">
+        <a th:href="@{/dashboard}" th:unless="${@cmsMessageBundle.getText('cms.logo') == ''}">
+            <img id="landingPageLogo" class="img-fluid" th:src="${'data:image/png;base64,' + @cmsMessageBundle.getText('cms.logo')}" alt="ilmLogo">
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6" th:utext="${@cmsMessageBundle.getText('cms.landingpage.text')}">
+        </div>
+        <div class="col-md-6">
+            <a th:href="@{/login/saml/employee/{id}(id=${identityProviders[1].loginId})}"
+               class="btn btn-white full-width full-height login-btn">
+                <em class="fa fa-fw fa-5x fa-user"></em>
+                <b class="logo_uni">
+                    <h2 th:utext="${@cmsMessageBundle.getText('cms.landingpage.button')}">
+                    </h2>
+                </b>
+            </a>
+
+            <p class="small text-muted" th:utext="${@cmsMessageBundle.getText('cms.landingpage.help')}">
+            </p>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/footer :: scripts}"></div>
+<div th:replace="~{fragments/footer :: footer}"></div>
+<script type="module" th:src="@{/js/fragments/logout-button.js}"></script>
+</body>
+</html>

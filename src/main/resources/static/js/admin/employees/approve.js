@@ -1,57 +1,18 @@
+import {initStartAndStopDatepicker, formatDate, formatDateForBackend} from '../../fragments/datePickerService.js';
+import verifyInputs from "../../fragments/verifyInputService.js";
+import initializeDataTable from "../../fragments/dataTableService.js";
+import {createArchetypeService} from "../../fragments/archetypeService.js";
+import initializeSwal from "../../fragments/swalService.js";
+
 var token = $("meta[name='_csrf']").attr("content");
-var approveService;
+let approveService;
+const { closeModal, saveArchetype, updateArchetype } = createArchetypeService();
 
 $(document).ready(function() {
     approveService = new ApproveService();
     approveService.init();
 
     $('[data-toggle="tooltip"]').tooltip();
-
-    const isAdmin = $('#isAdmin').data('admin');
-
-    if (isAdmin) {
-        // Use a rest call instead of inline javascript for security reasons (pre-processing)
-        $.ajax({
-            method : "POST",
-            url: "/rest/admin/orgUnits/tree",
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            success: function(allOUs){
-                $('#ou-tree').jstree({
-                    "core": {
-                        "data": allOUs,
-                        "themes": {
-                            "icons": false
-                        },
-                        "multiple": false
-                    },
-                    "search" : {
-                        "show_only_matches": true,
-                        "search_callback": function(str, node) {
-                            return (node.text.toUpperCase().includes(str.toUpperCase()));
-                        }
-                    },
-                    "plugins" : ["search", "wholerow"]
-                });
-
-                // searching in the JSTree
-                var to = false;
-                $('#ou-tree-search').keyup(function() {
-                    if (to) {
-                        clearTimeout(to);
-                    }
-
-                    to = setTimeout(function() {
-                        var v = $('#ou-tree-search').val();
-
-                        $('#ou-tree').jstree(true).search(v);
-                    }, 400);
-                });
-            }
-        });
-    }
 
     const approveRadio = document.getElementById('approveEmployee');
     const denyRadio = document.getElementById('denyEmployee');
@@ -72,14 +33,15 @@ $(document).ready(function() {
             }
         });
     }
+
+    approveService.onLoad();
+    initApproveButtons();
 });
 
 function ApproveService() {
-    let archetypeName = [];
-    let archetypeToAdd = [];
-
+    // This one is too customized to be outsourced
     this.init = function () {
-        var approveTable = $('#approveTable').DataTable({
+        let approveTable = $('#approveTable').DataTable({
             "serverSide": true,
             "destroy": true,
             "bSort": true,
@@ -87,16 +49,18 @@ function ApproveService() {
             "pageLength": 25,
             "responsive": true,
             "dom": "<'row'l<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-            "ajax": {
-                "url": "/rest/approve/view",
-                "type": "POST",
-                "headers": {
-                    "X-CSRF-TOKEN": token
-                },
-                "data": function (d) {
-                    return JSON.stringify(d);
-                },
-                "contentType": "application/json"
+            "ajax": function (data, callback) {
+                const hideRejected = $('#hideRejected').is(':checked');
+                $.ajax({
+                    "url": "/rest/approve/view?hideRejected=" + hideRejected,
+                    "type": "POST",
+                    "headers": {
+                        "X-CSRF-TOKEN": token
+                    },
+                    "data": JSON.stringify(data),
+                    "contentType": "application/json",
+                    "success": callback
+                });
             },
             "language": {
                 "search": "Søg",
@@ -114,6 +78,7 @@ function ApproveService() {
                 {"data": 'name'},
                 {"data": 'cpr'},
                 {"data": 'cvr'},
+                {"data": 'businessName'},
                 {"data": "approval", "render": function (data, type, row) {
                         if (data === 'AWAITING_APPROVAL') {
                             return 'Afventer godkendelse';
@@ -124,6 +89,9 @@ function ApproveService() {
                         else if (data === 'AWAITING_EXTENSION_APPROVAL') {
                             return "Godkendt, men vil anmode om mere tid";
                         }
+                        else if (data === 'DENIED') {
+                            return 'Afvist';
+                        }
                     }
                 },
                 {"data": 'id', "render": function (data, type, row) {
@@ -131,14 +99,14 @@ function ApproveService() {
                         let isLeader = $('#isLeader').data('leader');
 
                         if ((row.approval === 'LEADER_APPROVED' || row.approval === 'AWAITING_APPROVAL') && isAdmin) {
-                            return '<a onclick="approveService.sendToAdminApprove('+row.id+')"><em class="fa fa-fw fa-check"></em></a>'
+                            return '<a data-id="'+ row.id +'" class="sendToAdminButtons"><em class="fa fa-fw fa-check"></em></a>'
                         }
                         else if (row.approval === 'AWAITING_APPROVAL' && isLeader){
-                            return '<a onclick="approveService.approve('+row.id+')"><em class="fa fa-fw fa-check"></em></a>'
-                                + '<a onclick="approveService.deny('+row.id+')"><em class="fa fa-fw fa-times"></em></a>';
+                            return '<a data-id="'+ row.id +'" class="approveButtons"><em class="fa fa-fw fa-check"></em></a>'
+                                + '<a data-id="'+ row.id +'" class="denyButtons"><em class="fa fa-fw fa-times"></em></a>';
                         }
                         else if (row.approval === 'AWAITING_EXTENSION_APPROVAL' && (isLeader || isAdmin)) {
-                            return '<span><a onclick="approveService.approveExtension('+row.id+')"><em class="fa fa-fw fa-check"></em></a></span><a onclick="approveService.denyExtension('+row.id+')"><em class="fa fa-fw fa-times"></em></a>';
+                            return '<span><a data-id="'+ row.id +'" class="extensionButtons"><em class="fa fa-fw fa-check"></em></a></span><a data-id="'+ row.id +'" class="denyExtensionButtons"><em class="fa fa-fw fa-times"></em></a>';
                         }
                         return '';
                     }
@@ -146,82 +114,26 @@ function ApproveService() {
             ]
         });
         $.each($('.input-filter', approveTable.table().footer()), function () {
-            var column = approveTable.column($(this).index());
+            let column = approveTable.column($(this).index());
 
             $('input, select', this).on('keyup change', function () {
                 if (column.search() !== this.value) {
                     column.search(this.value).draw();
                 }
             });
+        });
+
+        $('#hideRejected').on('ifChanged change', function () {
+            approveTable.ajax.reload();
         });
     }
 
-    this.initArchetypeTable = function () {
-        var archetypeTable = $('#archetypeTable').DataTable({
-            "destroy": true,
-            "bSort": true,
-            "paging": true,
-            "pageLength": 25,
-            "responsive": true,
-            "dom": "<'row'l<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-            "language": {
-                "search": "Søg",
-                "lengthMenu": "_MENU_ rækker per side",
-                "info": "Viser _START_ til _END_ af _TOTAL_ rækker",
-                "zeroRecords": "Ingen data...",
-                "infoEmpty": "Henter data...",
-                "infoFiltered": "(ud af _MAX_ rækker)",
-                "paginate": {
-                    "previous": "Forrige",
-                    "next": "Næste"
-                }
-            }
-        });
-        $.each($('.input-filter', archetypeTable.table().footer()), function () {
-            var column = archetypeTable.column($(this).index());
-
-            $('input, select', this).on('keyup change', function () {
-                if (column.search() !== this.value) {
-                    column.search(this.value).draw();
-                }
-            });
-        });
-    }
-
-    this.initGroupTable = function () {
-        var groupTable = $('#groupTable').DataTable({
-            "destroy": true,
-            "bSort": true,
-            "paging": true,
-            "pageLength": 25,
-            "responsive": true,
-            "dom": "<'row'l<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-            "language": {
-                "search": "Søg",
-                "lengthMenu": "_MENU_ rækker per side",
-                "info": "Viser _START_ til _END_ af _TOTAL_ rækker",
-                "zeroRecords": "Ingen data...",
-                "infoEmpty": "Henter data...",
-                "infoFiltered": "(ud af _MAX_ rækker)",
-                "paginate": {
-                    "previous": "Forrige",
-                    "next": "Næste"
-                }
-            }
-        });
-        $.each($('.input-filter', groupTable.table().footer()), function () {
-            var column = groupTable.column($(this).index());
-
-            $('input, select', this).on('keyup change', function () {
-                if (column.search() !== this.value) {
-                    column.search(this.value).draw();
-                }
-            });
-        });
+    this.approveArchetypeTable = function () {
+        initializeDataTable('#archetypeTable', token);
     }
 
     this.sendToAdminApprove = function (id) {
-        window.location.href = "/approval/" + id;
+        globalThis.location.href = "/approval/" + id;
     }
 
     this.chooseEntity = function () {
@@ -229,107 +141,63 @@ function ApproveService() {
     }
 
     this.approve = function (id) {
-        swal({
-                title: 'Godkend medarbejder',
-                text: "Er du sikker?",
-                showCancelButton: true,
-                confirmButtonColor: "green",
-                confirmButtonText: "Ja",
-                cancelButtonText: "Nej",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            },
-            function(isConfirm) {
-                if(isConfirm) {
-                    $.ajax({
-                        method : "POST",
-                        url: "/rest/approve/" + id,
-                        headers: {
-                            "content-type": "application/json",
-                            'X-CSRF-TOKEN': token
-                        },
-                        success: function(data, textStatus, jqXHR){
-                            toastr.success("Medarbejder godkendt");
-                            window.location.reload();
-                        }
-                    });
-                }
-            }
-        )
+        const params = {
+            title: 'Godkend medarbejder',
+            text: 'Er du sikker?',
+            id: id,
+            token: token,
+            success: 'Medarbejder godkendt',
+            warning: 'Kunne ikke godkende medarbejderen',
+            url: '/rest/approve/',
+            options: { confirmButtonColor: 'green' }
+        };
+        initializeSwal(params);
     }
 
     this.deny = function (id) {
-        swal({
-                title: 'Afvis medarbejder',
-                text: "Er du sikker?",
-                showCancelButton: true,
-                confirmButtonColor: "red",
-                confirmButtonText: "Ja",
-                cancelButtonText: "Nej",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            },
-            function(isConfirm) {
-                if(isConfirm) {
-                    $.ajax({
-                        method : "POST",
-                        url: "/rest/deny/" + id,
-                        headers: {
-                            "content-type": "application/json",
-                            'X-CSRF-TOKEN': token
-                        },
-                        success: function(data, textStatus, jqXHR){
-                            toastr.success("Medarbejder afvist");
-                            window.location.reload();
-                        }
-                    });
-                }
-            }
-        )
-    }
-
-    this.saveOUs = function (){
-        var selectedNodes = $('#ou-tree').jstree('get_selected', true);
-
-        $("#orgUnits").empty();
-
-        if (selectedNodes.length === 1) {
-            var node = selectedNodes[0];
-            $("#orgUnits").append('<option value=\"' + node.id + '\" selected="selected"> ' + node.text + "</option>");
-            $('#entity').val(node.text);
-            $('#entity').attr('data-uuid', node.id);
-        }
-
-        $('#modal-ou').modal('hide');
+        const params = {
+            title: 'Afvis medarbejder',
+            text: 'Er du sikker?',
+            id: id,
+            token: token,
+            success: 'Medarbejder afvist',
+            warning: 'Kunne ikke afvise medarbejderen',
+            url: '/rest/deny/'
+        };
+        initializeSwal(params);
     }
 
     this.cancelButton = function () {
-        window.location.href = "/approve"
+        globalThis.location.href = "/approve";
     }
 
-    this.saveApprovedEmployee = function (obj) {
-        let id = $(obj).data("id");
-
+    this.saveApprovedEmployee = async function (id ) {
         let isApproved = $('#approveEmployee').is(':checked');
         let isDenied = $('#denyEmployee').is(':checked');
         let archetype = $('#archetype').data('id');
         let ou = $('#entity').data('uuid');
-        let startDate = $('#startDate').datepicker('getDate');
-        let stopDate = $('#stopDate').datepicker('getDate');
+        let startDate = formatDateForBackend($('#startDate').datepicker('getDate'));
+        let stopDate = formatDateForBackend($('#stopDate').datepicker('getDate'));
         let activationPeriod = $('#activationSelect').find('option:selected').val();
         let businessName = $('#businessName').val();
-
-        if (startDate && stopDate) {
-            if (startDate > stopDate) {
-                toastr.warning("Start dato må ikke være efter stop dato!");
-                return;
-            }
-        }
+        let enableOrdering = $('#enableOrdering').is(':checked');
+        let manualAccountName = $('#manualAccountName').val();
 
         if (!isDenied) {
-            let inputVerified = approveService.verifyInput(isApproved, isDenied, archetype, ou, startDate, stopDate, activationPeriod);
+            const isValid = verifyInputs([
+                {value: startDate, message: "Du skal angive et start dato"},
+                {value: archetype, message: "Du skal vælge en arketype"},
+                {value: ou, message: "Du skal vælge en organisation"},
+                {value: [isApproved, isDenied], message: "Du skal godkende eller afvise medarbejderen", type: 'oneOfNotFalse'},
+                {value: startDate, message: "Start dato må ikke være efter stop dato", compareValue: stopDate, type: 'greaterThan'}
+            ]);
 
-            if (!inputVerified) {
+            if (!isValid) {
+                return;
+            }
+
+            if ($('#manualAccountName').length && !manualAccountName) {
+                toastr.warning("Du skal angive et brugernavn til AD-kontoen");
                 return;
             }
         }
@@ -342,80 +210,51 @@ function ApproveService() {
             "startDate": startDate,
             "stopDate": stopDate,
             "activationPeriod": activationPeriod,
-            "businessName": businessName
+            "businessName": businessName,
+            "enableOrdering": enableOrdering,
+            "manualAccountName": manualAccountName
         }
-        $.ajax({
-            method : "POST",
-            url: "/rest/approval/" + id,
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            data: JSON.stringify(data),
-            success: function(data, textStatus, jqXHR) {
-                toastr.success("Medarbejder er godkendt");
 
-                window.location.href = window.location.origin + "/approve";
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                toastr.warning("Der opstod en fejl");
+        try {
+            const url = `/rest/approval/${id}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
             }
-        });
+
+            toastr.success("Medarbejder er godkendt");
+            location.href = '/approve';
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message || "Kunne ikke godkende medarbejderen");
+        }
     }
 
     this.chooseArchetype = function () {
-        approveService.initArchetypeTable();
+        approveService.approveArchetypeTable();
         $('#modal-archetype').modal("show");
     }
 
-    this.closeModal = function () {
-        $('input[name="archetypeChoice"]').prop('checked', false);
-        archetypeToAdd = [];
-        archetypeName = [];
-        $('#modal-archetype').modal('hide');
-    }
-
-    this.updateArchetype = function (obj) {
-        let selectedName = $(obj).data("name");
-        let id = $(obj).data("id");
-
-        archetypeToAdd = [];
-        archetypeName = [];
-
-        if ($(obj).prop('checked')) {
-            archetypeName.push(selectedName);
-            archetypeToAdd.push(id);
-        }
-    }
-
     this.denyExtension = function (id) {
-        swal({
-                title: 'Afvise forlængelses anmodning',
-                text: "er du sikker?",
-                showCancelButton: true,
-                confirmButtonColor: "red",
-                confirmButtonText: "Ja",
-                cancelButtonText: "Nej",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            },
-            function(isConfirm) {
-                if (isConfirm) {
-                    $.ajax({
-                        method: "POST",
-                        url: "/rest/employee/denyExtension/" + id,
-                        headers: {
-                            "Content-Type": "application/json",
-                            'X-CSRF-TOKEN': token
-                        },
-                        success: function (data, textStatus, jqXHR) {
-                            toastr.success("Forlængelse afvist");
-                            window.location.reload();
-                        }
-                    });
-                }
-            }
-        )
+        const params = {
+            title: 'Afvise forlængelses anmodning',
+            text: 'Er du sikker?',
+            id: id,
+            token: token,
+            success: 'Forlængelse afvist',
+            warning: 'Kunne ikke afvise anmodning om forlængelsen',
+            url: '/rest/employee/denyExtension/'
+        };
+        initializeSwal(params);
     }
 
     this.approveExtension = function (id) {
@@ -429,69 +268,165 @@ function ApproveService() {
             confirmButtonText: "Gem",
             cancelButtonText: "Annuller",
             closeOnConfirm: false
-        }, function(newDate) {
+        }, async function(newDate) {
             if (newDate) {
-                $.ajax({
-                    method: "POST",
-                    url: "/rest/employee/extend/",
-                    headers: {
-                        "content-type": "application/json",
-                        'X-CSRF-TOKEN': token
-                    },
-                    data: JSON.stringify({
-                        "id": id,
-                        "stopDate": newDate
-                    }),
-                    success: function() {
-                        toastr.success("Medarbejder forlænget");
-                        window.location.reload();
+                try {
+                    const url = '/rest/employee/extend';
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            "content-type": "application/json",
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: JSON.stringify({
+                            "id": id,
+                            "stopDate": newDate
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText);
                     }
-                });
+
+                    toastr.success("Medarbejder blev forlænget");
+                    location.reload();
+                } catch (error) {
+                    console.error(error.message);
+                    toastr.warning(error.message);
+                }
             }
         });
     }
 
-    this.saveArchetype = function () {
-        for (let i = 0; i < archetypeName.length; i++) {
-            $('#archetype').val(archetypeName[i]);
-        }
-        for (let i = 0; i < archetypeToAdd.length; i++) {
-            $('#archetype').attr('data-id', archetypeToAdd[i]);
-        }
-        $('#modal-archetype').modal("hide");
-    }
-
     this.chooseArchetype = function () {
-        approveService.initArchetypeTable();
+        approveService.approveArchetypeTable();
         $('#modal-archetype').modal("show");
     }
 
-    this.verifyInput = function (isApproved, isDenied, archetype, ou, startdate, stopdate, activation) {
-        if (isApproved === false && isDenied === false) {
-            toastr.warning("Du skal enten godkende ellers afvise medarbejderen");
-            return false;
+    this.onLoad = function () {
+        const business = $('#business');
+
+        // Default the "order Exchange account" checkbox from the business' settings
+        const enableOrdering = business.data('enable-ordering') === true;
+        $('#enableOrdering').prop('checked', enableOrdering);
+        if (typeof $.fn.iCheck !== 'undefined') {
+            $('#enableOrdering').iCheck('update');
         }
-        if (!archetype || archetype === "0") {
-            toastr.warning("Du skal angive en arketype for at tildele roller");
-            return false;
+
+        // Load default org unit into the input
+        const defaultOrgUnitUuid = business.data('default-ou-uuid');
+        const defaultOrgUnitName = business.data('default-ou-name');
+        let entity = $('#entity');
+
+        if (defaultOrgUnitUuid && defaultOrgUnitName) {
+            entity.val(defaultOrgUnitName);
+
+            entity.data('uuid', defaultOrgUnitUuid);
+            entity.data('name', defaultOrgUnitName);
+        } else {
+            entity.val('');
+            entity.removeData('uuid');
+            entity.removeData('name');
         }
-        if (!ou) {
-            toastr.warning("Du skal angive en organisation, som medarbejderen skal tilføjes til");
-            return false;
+
+        // Load the start and stop dates
+        const maxFutureDays = business.data('max-days-future');
+        const maxEmploymentDays = business.data('max-employment-days');
+        const defaultEmploymentDays = business.data('default-employment-days');
+        const stopDate = $('#stopDate');
+
+        if (defaultEmploymentDays && !stopDate.val()) {
+            let startDate = $('#startDate').val();
+            if (startDate === "") {
+                let today = new Date();
+                let newDate = new Date(today);
+                let days = Number(defaultEmploymentDays);
+                newDate.setDate(today.getDate() + days);
+                const newStopDate = formatDate(newDate);
+
+                stopDate.val(newStopDate);
+            } else {
+                let startDateObj = convertStringToDate(startDate);
+                let newDate = new Date(startDateObj);
+                let days = Number(defaultEmploymentDays);
+                newDate.setDate(startDateObj.getDate() + days);
+                const newStopDate = formatDate(newDate);
+
+                stopDate.val(newStopDate);
+            }
         }
-        if (!startDate) {
-            toastr.warning("Du skal angive et start dato");
-            return false;
-        }
-        if (!stopdate) {
-            toastr.warning("Du skal angive et stop dato");
-            return false;
-        }
-        if (!activation || activation === "0") {
-            toastr.warning("Du skal angive en aktiveringsperiode");
-            return false;
-        }
-        return true;
+
+        initStartAndStopDatepicker('startDate', 'stopDate', Number(maxFutureDays), Number(maxEmploymentDays), Number(defaultEmploymentDays));
     }
+}
+
+function convertStringToDate(dateString) {
+    // Split the date string and rearrange to yyyy-mm-dd format
+    const parts = dateString.split('/');
+    const day = parts[0];
+    const month = parts[1];
+    const year = parts[2];
+
+    // Create date object
+    return new Date(year, month - 1, day);
+}
+
+function initApproveButtons() {
+    $(document).on('click', (e) => {
+        const target = e.target;
+
+        const btnId = target.id || target.closest('[id]')?.id;
+
+        switch (btnId) {
+            case 'cancel':
+                approveService.cancelButton();
+                break;
+            case 'chooseArchetypeButton':
+                approveService.chooseArchetype();
+                break;
+            case 'save-archetype':
+                saveArchetype();
+                break;
+            case 'confirm': {
+                const id = target.closest('#confirm').dataset.id;
+                approveService.saveApprovedEmployee(id);
+                break;
+            }
+        }
+
+        if (target.classList.contains('close-modal') || target.closest('.close-modal')) {
+            closeModal();
+        }
+        else if (target.classList.contains('sendToAdminButtons') || target.closest('.sendToAdminButtons')) {
+            const id = target.closest('.sendToAdminButtons')?.dataset.id;
+            approveService.sendToAdminApprove(id);
+        }
+        else if (target.classList.contains('approveButtons') || target.closest('.approveButtons')) {
+            const id = target.closest('.approveButtons')?.dataset.id;
+            approveService.approve(id);
+        }
+        else if (target.classList.contains('denyButtons') || target.closest('.denyButtons')) {
+            const id = target.closest('.denyButtons')?.dataset.id;
+            approveService.deny(id);
+        }
+        else if (target.classList.contains('extensionButtons') || target.closest('.extensionButtons')) {
+            const id = target.closest('.extensionButtons')?.dataset.id;
+            approveService.approveExtension(id);
+        }
+        else if (target.classList.contains('denyExtensionButtons') || target.closest('.denyExtensionButtons')) {
+            const id = target.closest('.denyExtensionButtons')?.dataset.id;
+            approveService.denyExtension(id);
+        }
+    });
+
+    $(document).on('change', (e) => {
+        const target = e.target;
+
+        if (target.classList.contains('updateArchetypeButtons') || target.closest('.updateArchetypeButtons')) {
+            const btn = target.closest('.updateArchetypeButtons');
+            updateArchetype(btn);
+        }
+    })
 }
 

@@ -4,6 +4,9 @@ SELECT
     e.name AS name,
     CONCAT(SUBSTRING(e.cpr, 1, (CHAR_LENGTH(e.cpr) - 4)), '-xxxx') AS cpr,
     e.cvr AS cvr,
+    bs.name AS business_name,
     e.approved AS approval
 FROM employee e
-WHERE e.approved IN ('AWAITING_APPROVAL', 'LEADER_APPROVED', 'AWAITING_EXTENSION_APPROVAL');
+    LEFT JOIN business bs on bs.cvr = e.cvr
+WHERE e.deleted = false
+  AND e.approved IN ('AWAITING_APPROVAL', 'LEADER_APPROVED', 'AWAITING_EXTENSION_APPROVAL', 'DENIED');

@@ -18,12 +18,12 @@
                             <div class="ibox-footer">
                                 <div class="form-group row">
                                     <div class="col-lg-4">
-                                        <input type="checkbox" id="acceptTerms" class="i-checks">
+                                        <input type="checkbox" id="acceptedTOS" class="i-checks">
                                         &nbsp;<strong>Jeg accepter vilkår og privatlivspolitik</strong>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <button type="button" class="btn btn-primary" id="butRateTypeCreate" onclick="registrationService.acceptTerms()">Send</button>
+                                    <button type="button" th:data-id="${employeeId}" class="btn btn-primary" id="acceptTerms">Send</button>
                                 </div>
                             </div>
                         </div>
@@ -35,7 +35,7 @@
         <div th:replace="~{fragments/footer :: scripts (checkbox = true, slimScroll = true)}"></div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/registration/registration.js}"></script>
+<script type="module" th:src="@{/js/registration/policy.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

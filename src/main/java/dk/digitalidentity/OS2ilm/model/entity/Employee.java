@@ -2,6 +2,7 @@ package dk.digitalidentity.OS2ilm.model.entity;
 
 import dk.digitalidentity.OS2ilm.model.entity.enums.ApproveStatus;
 import dk.digitalidentity.OS2ilm.model.entity.enums.EmployeeStatus;
+import dk.digitalidentity.OS2ilm.model.entity.enums.ExchangeAccountStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,15 +19,20 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+@Audited
 @Getter
 @Setter
 @Entity(name = "employee")
+@SQLRestriction("deleted = false")
 public class Employee {
 
     @Id
@@ -84,14 +90,15 @@ public class Employee {
 	private boolean blocked;
 
 	// Needed for ad creation after tos has been accepted
-	@OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+	@NotAudited
+	@ManyToOne
 	@JoinColumn(name = "activation_time_frame_id")
 	private ActivationTimeFrame activationTimeFrame;
 
 	@Column
 	private String role;
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name = "org_unit_uuid")
 	private OrgUnit orgUnit;
 
@@ -111,6 +118,14 @@ public class Employee {
 	)
 	private Set<UserRole> userRoles = new HashSet<>();
 
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+			name = "employee_role_group_mapping",
+			joinColumns = @JoinColumn(name = "employee_id"),
+			inverseJoinColumns = @JoinColumn(name = "role_group_id")
+	)
+	private Set<RoleGroup> roleGroups = new HashSet<>();
+
 	public void addUserRole(UserRole userRole) {
 		userRoles.add(userRole);
 	}
@@ -119,9 +134,29 @@ public class Employee {
 		adGroups.add(adGroup);
 	}
 
+	public void addRoleGroup(RoleGroup roleGroup) {
+		roleGroups.add(roleGroup);
+	}
+
 	@Column
 	private LocalDateTime lastLogin;
 
 	@Column
 	private String extUuid;
+
+	@Column
+	private String extAffiliationUuid;
+
+	@Column
+	private String reason;
+
+	@Column
+	@Enumerated(EnumType.STRING)
+	private ExchangeAccountStatus exchangeAccountStatus = ExchangeAccountStatus.NONE;
+
+	@Column
+	private String pendingAccountName;
+
+	@Column
+	private boolean deleted = false;
 }

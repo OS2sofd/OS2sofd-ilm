@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (datatables = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'leader')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'leader')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row" id="leaders">
+                <div class="col-md-12" style="margin-top: 20px">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-user-circle-o"></em> &nbsp; Ledere </h5>
+                        </div>
+
+                        <div class="ibox-content" >
+                            <p>
+                                Her har du et overblik over alle ledere i systemet og har mulighed for at oprette og redigere dem.
+                            </p>
+                            <a class="btn btn-w-m btn-primary" th:if="${isAdmin}" href="/leader/create" style="float: right">Opret</a>
+                            <div class="table-responsive">
+                                <table id="leaderTable" class="table table-striped table-bordered table-hover" >
+                                    <thead>
+                                    <tr>
+                                        <th>Navn</th>
+                                        <th>Email</th>
+                                        <th>Login ID</th>
+                                        <th>Virksomheder</th>
+                                        <th>Handlinger</th>
+                                    </tr>
+                                    </thead>
+
+                                    <tfoot style="display: table-row-group">
+                                    <tr>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td></td>
+                                    </tr>
+                                    </tfoot>
+
+                                    <tbody>
+                                    <tr th:each="leader : ${leaders}">
+                                        <td th:text="${leader.name}" th:value="${leader.id}"></td>
+                                        <td th:text="${leader.mail}"></td>
+                                        <td th:text="${leader.identifier}"></td>
+                                        <td>
+                                            <span th:each="business, stat : ${leader.businesses}">
+                                                <span th:text="${business.name}"></span><span th:if="${!stat.last}">, </span>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span>
+                                                <a class="editLeaderBtn" th:if="${isAdmin}" th:data-id="${leader.id}"><em class="fa fa-fw fa-pencil"></em></a>
+                                                <a class="deleteLeaderBtn" th:if="${isAdmin}" th:data-id="${leader.id}"><em class="fa fa-fw fa-times"></em></a>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (datatables = true)}"></div>
+            <div th:replace="~{fragments/footer :: footer}"></div>
+        </div>
+    </div>
+</div>
+<script type="module" th:src="@{/js/admin/leader/leader.js}"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

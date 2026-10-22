@@ -1,7 +1,10 @@
 package dk.digitalidentity.OS2ilm.model.entity;
 
+import dk.digitalidentity.OS2ilm.model.entity.enums.CmsStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,6 +28,13 @@ public class CmsMessage {
 
     @Column
     private String cmsValue;
+
+	@Column
+	private boolean active = true;
+
+	@Column
+	@Enumerated(EnumType.STRING)
+	private CmsStatus cmsStatus = CmsStatus.ACTIVE;
 
     @Column
     private LocalDateTime lastUpdated;

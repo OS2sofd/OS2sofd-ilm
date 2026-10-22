@@ -18,7 +18,7 @@ public class FetchUserRolesFromRoleCatalogTask {
 	private final IlmConfiguration config;
 
 	// a handfuld of times a day
-    @Scheduled(cron = "${os2ilm.scheduled.rcSyncCron:0 0 * * * ?}")
+    @Scheduled(cron = "${os2ilm.scheduled.rcSyncCron:0 0/15 * * * ?}")
 	public synchronized void synchronizeUserRoles() {
 		if (!config.getScheduled().isEnabled() || !config.getRc().isEnabled()) {
 			return;
@@ -26,12 +26,13 @@ public class FetchUserRolesFromRoleCatalogTask {
 
 		log.info("Running task: synchronizeUserRoles from RC");
 
-		roleCatalogService.syncData();
+		roleCatalogService.syncUserRoles();
+		roleCatalogService.syncRoleGroups();
 
 		log.info("Finished task: synchronizeUserRoles from RC");
 	}
 
-	@Scheduled(cron = "${os2ilm.scheduled.rcAssignCron:0 0 * * * ?}") // Probably needs to happen more often
+	@Scheduled(cron = "${os2ilm.scheduled.rcAssignCron:0 0/15 * * * ?}")
 	public void assignRolesToUsers() {
 		if (config.getScheduled().isEnabled() || config.getRc().isEnabled()) {
 			log.info("Assigning roles to users in RC");

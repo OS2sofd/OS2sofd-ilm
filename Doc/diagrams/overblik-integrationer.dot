@@ -1,0 +1,32 @@
+digraph overblik {
+    graph [rankdir=TB, bgcolor="transparent", nodesep=0.25, ranksep=0.55, pad=0.1];
+    node  [shape=box, style="rounded,filled", fillcolor="white", color="#525e7e", penwidth=1.2,
+           fontname="DejaVu Sans", fontsize=11, fontcolor="#1c1f26", margin="0.16,0.1"];
+    edge  [color="#525e7e", penwidth=1.2, arrowsize=0.8, fontname="DejaVu Sans", fontsize=9, fontcolor="#5b6270"];
+
+    subgraph cluster_login {
+        graph [style=invis];
+        fk     [label=<<b>FK Adgang</b><br/><font point-size="9">Administratorer</font>>];
+        mitid  [label=<<b>NemLog-in (MitID)</b><br/><font point-size="9">Medarbejdere og ledere</font>>];
+    }
+
+    ilm [label=<<b>OS2sofd – ILM</b>>, fillcolor="#373d54", color="#373d54", fontcolor="white", fontsize=13, margin="0.4,0.18"];
+
+    sofd [label=<<b>OS2sofd</b><br/><font point-size="9">Personer, tilhørsforhold<br/>og enheder</font>>];
+    ad   [label=<<b>Active Directory</b><br/><font point-size="9">Brugerkonti, grupper<br/>og kodeord</font>>];
+    rc   [label=<<b>OS2rollekatalog</b><br/><font point-size="9">Jobfunktionsroller<br/>og rollebuketter</font>>];
+    post [label=<<b>Digital Post / e-mail</b><br/><font point-size="9">Beskeder</font>>];
+    cvr  [label=<<b>CVR-registret</b><br/><font point-size="9">Virksomheder</font>>];
+
+    { rank=same; post; ilm; cvr; }
+
+    fk -> ilm    [label=" login"];
+    mitid -> ilm [label=" login"];
+
+    post -> ilm [dir=back, minlen=1];
+    ilm -> cvr  [dir=both, minlen=1];
+
+    ilm -> sofd [dir=both];
+    ilm -> ad;
+    ilm -> rc   [dir=both];
+}

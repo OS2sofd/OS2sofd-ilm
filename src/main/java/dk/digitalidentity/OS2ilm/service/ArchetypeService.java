@@ -33,7 +33,7 @@ public class ArchetypeService {
 		archetypeDao.saveAll(archetypes);
 	}
 
-	public Archetype findByIdWithUserRolesAndAdGroups(long id) {
-		return archetypeDao.findByIdWithUserRolesAndAdGroups(id);
+	public Archetype findByIdWithUserRolesAndAdGroupsAndRoleGroups(long id) {
+		return archetypeDao.findByIdWithUserRolesAndAdGroupsAndRoleGroups(id);
 	}
 }

@@ -2,6 +2,7 @@ package dk.digitalidentity.OS2ilm.service.cms;
 
 import dk.digitalidentity.OS2ilm.model.entity.CmsMessage;
 import dk.digitalidentity.OS2ilm.model.entity.enums.CmsProperty;
+import dk.digitalidentity.OS2ilm.model.entity.enums.CmsType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -40,16 +41,35 @@ public class CmsMessageBundle {
         return value;
     }
 
-    public record CmsMessageOutput(String key, String description) { }
+	public boolean getActive(String key) {
+		boolean result = true;
+		CmsMessage cmsMessage = cmsMessageService.getByCmsKey(key);
+		if (cmsMessage != null) {
+			result = cmsMessage.isActive();
+		}
+		return result;
+	}
+
+    public record CmsMessageOutput(String key, String description, boolean active) { }
     
     public List<CmsMessageOutput> getAll() {
         List<CmsMessageOutput> all = new ArrayList<>();
         for (CmsProperty value : CmsProperty.values()) {
-            all.add(new CmsMessageOutput(value.getKey(), value.getDescription()));
+            all.add(new CmsMessageOutput(value.getKey(), value.getDescription(), getActive(value.getKey())));
         }
 
         return all;
     }
+
+	public List<CmsMessageOutput> getByType(CmsType cmsType) {
+		List<CmsMessageOutput> all = new ArrayList<>();
+		for (CmsProperty value : CmsProperty.values()) {
+			if (value.getCmsType().equals(cmsType)) {
+				all.add(new CmsMessageOutput(value.getKey(), value.getDescription(), getActive(value.getKey())));
+			}
+		}
+		return all;
+	}
 
     public String getDescription(String key) {
 		return Arrays.stream(CmsProperty.values())

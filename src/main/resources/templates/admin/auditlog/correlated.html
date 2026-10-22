@@ -20,7 +20,7 @@
                                 <h4>Logdata fra samme session:</h4>
                             </div>
                             <div class="table-responsive">
-                                <table id="eventlog" class="table table-striped table-bordered table-hover" >
+                                <table id="correlatedTable" class="table table-striped table-bordered table-hover" >
                                     <thead>
                                     <tr>
                                         <th style="width: 110px;">Tidspunkt</th>
@@ -41,7 +41,7 @@
                                                 <option selected="selected" value="">Alle</option>
                                                 <option th:each="action : ${auditLogs}"
                                                         th:value="${action.logAction}"
-                                                        th:text="${action.logAction}">
+                                                        th:text="${action?.logAction?.type?.getTranslation()}">
                                                 </option>
                                             </select>
                                         </td>
@@ -54,7 +54,7 @@
                                         <td th:text="${action.tts}" th:value="${action.tts}"></td>
                                         <td th:text="${action.performerName}" th:value="${action.performerName}"></td>
                                         <td th:text="${action.targetName}" th:value="${action.targetName}"></td>
-                                        <td th:text="${action.logAction}" th:value="${action.logAction}"></td>
+                                        <td th:text="${action.logAction?.type.getTranslation()}" th:value="${action.logAction?.type.getTranslation()}"></td>
                                         <td th:text="${action.message}" th:value="${action.message}"></td>
                                     </tr>
                                     </tbody>
@@ -69,7 +69,7 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/admin/auditlog.js}"></script>
+<script type="module" th:src="@{/js/admin/auditlog/auditlog.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

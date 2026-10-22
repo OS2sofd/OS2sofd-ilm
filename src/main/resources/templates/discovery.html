@@ -59,18 +59,18 @@
 </div>
 <div th:replace="~{fragments/footer :: scripts}"></div>
 <div th:replace="~{fragments/footer :: footer}"></div>
-<style>
-	.left-icon {
-		margin: 15px auto;
-	}
-
-	@media (min-width: 768px) {
-		.right-text-block {
-			text-align: left;
-		}
-	}
-</style>
-
+<script type="module" th:src="@{/js/fragments/logout-button.js}"></script>
 </body>
+<style>
+    .left-icon {
+        margin: 15px auto;
+    }
+
+    @media (min-width: 768px) {
+        .right-text-block {
+            text-align: left;
+        }
+    }
+</style>
 </html>
 

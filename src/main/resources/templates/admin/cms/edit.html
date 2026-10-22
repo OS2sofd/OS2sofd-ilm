@@ -25,13 +25,6 @@
                             </p>
 
                             <p>På grund af caching, vil der gå lidt tid (op til 5 minutter), inden ændringen træder i kraft</p>
-                            <p>Du kan gøre brug af følgende pladsholdere:</p>
-                            <th:block th:unless="${cmsMessage.key == 'cms.logo'}">
-                                <div th:each="placeholder : ${placeholders}" style="margin-bottom: 5px;">
-                                    <strong th:text="${placeholder.key + ': '}"></strong>
-                                    <span th:text="${placeholder.displayName}"></span>
-                                </div>
-                            </th:block>
 
                             <form id="cmsLogoForm" th:if="${cmsMessage.key == 'cms.logo'}" action="#" th:action="@{/admin/cms-edit/logo}" th:object="${cmsMessage}" method="post" enctype="multipart/form-data">
                                 <input th:field="*{key}" style="display: none">
@@ -47,12 +40,12 @@
                                     </label>
                                     <input type='file' name="value" id="value" accept=".png">
                                 </div>
-                                <p th:if="${showError}" style="color: red;">Den uploadede billede er for stort. Max 64KB tillades</p>
+                                <p th:if="${showError}" style="color: red;">Det uploadede billede er for stort. Max 64KB tillades</p>
                                 <br/>
 
                                 <div class="text-right">
                                     <button th:href="@{/admin/cms}" class="btn btn-danger">Annuller</button>
-                                    <button th:href="@{/admin/cms}" th:if="${cmsMessage.key == 'cms.logo'}" onclick="cmsEditService.removeLogo()" class="btn btn-warning">Fjern logo</button>
+                                    <button th:href="@{/admin/cms}" th:if="${cmsMessage.key == 'cms.logo'}" id="removeLogoBtn" class="btn btn-warning">Fjern logo</button>
                                     <button th:if="${cmsMessage.key == 'cms.logo'}" type="submit" class="btn btn-primary">Gem logo</button>
                                 </div>
                             </form>
@@ -79,7 +72,7 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/admin/cms/cms.js}"></script>
+<script type="module" th:src="@{/js/admin/cms/cms.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 <style>

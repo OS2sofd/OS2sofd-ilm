@@ -1,5 +1,5 @@
 var token = $("meta[name='_csrf']").attr("content");
-var searchService;
+let searchService;
 
 $(document).ready(function() {
     searchService = new SearchService();
@@ -7,18 +7,17 @@ $(document).ready(function() {
 });
 
 function SearchService() {
-    var currentIndex = -1;
-    var resultsHidden = false;
+    let currentIndex = -1;
     this.init = function () {
         // focus searchbar on double-shift
-        var lastShift = 0;
-        window.addEventListener('keydown', function(event) {
-            if( event.keyCode == 16 ) {
-                if( new Date().getTime() - lastShift < 500 ) {
+        let lastShift = 0;
+        globalThis.addEventListener('keydown', function(event) {
+            if( event.key === 'Shift' ) {
+                if(Date.now() - lastShift < 500 ) {
                     $('#searchBar').focus();
                 }
                 else {
-                    lastShift = new Date().getTime();
+                    lastShift = Date.now();
                 }
             }
             else {
@@ -27,20 +26,30 @@ function SearchService() {
         });
     }
 
-    this.onSearch = function () {
-        var token = $("meta[name='_csrf']").attr("content");
-        if ($('#searchBar').val().length > 1) {
-            $.ajax({
-                url: "/rest/search/" + $('#searchBar').val(),
-                headers: {
-                    'X-CSRF-TOKEN': token
-                },
-                type: 'GET',
-                contentType: 'application/json',
-                success: function (data, textStatus, jQxhr) {
-                    searchService.displayResults(data);
+    this.onSearch = async function () {
+        const searchBar = $('#searchBar').val();
+        if (searchBar.length > 1) {
+            try {
+                const url = `/rest/search/${searchBar}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        "content-type": "application/json",
+                        'X-CSRF-TOKEN': token
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Der opstod en teknisk fejl");
                 }
-            });
+
+                const data = await response.json();
+                searchService.displayResults(data);
+            } catch (error) {
+                console.error(error);
+                // There is no error message that makes sense here
+                toastr.warning("Der opstod en teknisk fejl");
+            }
         } else {
             $('#searchResults').empty();
             currentIndex = -1;
@@ -59,16 +68,15 @@ function SearchService() {
             "Ext": "fa fa-plus",
             "Table": "fa fa-table"
         };
-        var resultsContainer = $('#searchResults');
+        let resultsContainer = $('#searchResults');
         // Clear and reset before getting new results
         resultsContainer.empty();
         currentIndex = -1;
-        resultsHidden = false;
         if (data && data.length > 0) {
             // Show 10 results max
             data.slice(0, 10).forEach(function (item, index) {
-                var title;
-                var icon;
+                let title;
+                let icon;
                 // Pre-process the text to add icons
                 for (const [key, iconClass] of Object.entries(iconMap)) {
                     if (item.name.includes(key)) {
@@ -77,7 +85,7 @@ function SearchService() {
                         break;
                     }
                 }
-                var resultItem = $('<a>')
+                let resultItem = $('<a>')
                     .addClass('list-group-item list-group-item-action')
                     .attr('href', item.url)
                     .attr('data-index', index)
@@ -93,39 +101,6 @@ function SearchService() {
             resultsContainer.show();
         }
     }
-    this.handleKeyNavigation = function (event) {
-        var resultsItems = $('#searchResults .list-group-item-action');
-        // When we hide the results and press arrow, we initialise the search again
-        if (resultsHidden && (event.key === 'ArrowDown' || event.keyCode == 40)) {
-            onSearch();
-            return;
-        }
-        if (resultsItems.length === 0) return;
-        if (event.key === 'ArrowDown' || event.keyCode == 40) {
-            event.preventDefault();
-            if (currentIndex < resultsItems.length - 1) {
-                currentIndex++;
-                searchService.highlightItem(resultsItems);
-            }
-        }
-        else if (event.key === 'ArrowUp' || event.keyCode == 38) {
-            event.preventDefault();
-            if (currentIndex > 0) {
-                currentIndex--;
-                searchService.highlightItem(resultsItems);
-            }
-        }
-        else if ((event.key === 'Enter' || event.keyCode == 13) && currentIndex > -1) {
-            event.preventDefault();
-            window.location.href = $(resultsItems[currentIndex]).attr('href');
-        }
-        else if (event.key === 'Escape' || event.keyCode == 27) {
-            $('#searchResults').hide();
-            resultsHidden = true;
-            currentIndex = -1;
-        }
-    }
-
     this.highlightItem = function (resultsItems) {
         // Clear highlighting made prior
         resultsItems.removeClass('active');

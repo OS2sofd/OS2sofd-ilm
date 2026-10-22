@@ -7,7 +7,7 @@
                 <li class="navbar-header" style="margin-top: -20px; margin-bottom: 10px">
                     <a th:href="@{/dashboard}" style="background:#293846" class=" navbar-brand d-flex align-items-center">
                         <a th:href="@{/dashboard}" th:unless="${@cmsMessageBundle.getText('cms.logo') == ''}" style="display: inline;">
-                            <img class="img-fluid" th:src="${'data:image/png;base64,' + @cmsMessageBundle.getText('cms.logo')}" style="max-width: 300px; max-height: 38px;">
+                            <img id="ilmLogo" alt="ilmLogo" class="img-fluid" th:src="${'data:image/png;base64,' + @cmsMessageBundle.getText('cms.logo')}">
                             <strong style="color: white; margin-left: 10px;">OS2ilm</strong>
                         </a>
                         <a th:href="@{/dashboard}" th:unless="${@cmsMessageBundle.getText('cms.logo') != ''}" style="display: inline; float: left; margin-top: -10px;">
@@ -31,9 +31,19 @@
                     <li th:class="${page != null && #strings.startsWith(page, 'business') ? ' active' : ''}">
                         <a style="color: #a7b1c2" th:href="@{/business/overview}"><em class="fa fa-fw fa-building"></em> &nbsp Virksomheder</a>
                     </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'leader') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/leader/overview}"><em class="fa fa-fw fa-user-circle-o"></em> &nbsp Ledere</a>
+                    </li>
                     <li th:class="${page != null && #strings.startsWith(page, 'activation') ? ' active' : ''}">
                         <a style="color: #a7b1c2" th:href="@{/admin/ad/activation}"><em class="fa fa-fw fa-clock-o"></em> &nbsp Aktiveringsperiode</a>
                     </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'invitation') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/admin/invitation/form}"><em class="fa fa-fw fa-envelope"></em> &nbsp E-mail invitation</a>
+                    </li>
+                    <li th:class="${page != null && #strings.startsWith(page, 'emailtemplate') ? ' active' : ''}">
+                        <a style="color: #a7b1c2" th:href="@{/admin/emailtemplate/list}"><em class="fa fa-fw fa-envelope"></em> &nbsp Mailskabeloner</a>
+                    </li>
+
                 </th:block>
 				<th:block th:if="${leader == true}">
 					<li th:class="${page != null && #strings.startsWith(page, 'employee') ? ' active' : ''}">
@@ -45,17 +55,18 @@
 				</th:block>
                 <th:block th:if="${employee == true}">
                     <li th:class="${page != null && #strings.startsWith(page, 'profile') ? ' active' : ''}">
-                        <a style="color: #a7b1c2" th:href="@{/templates/employee/my/account}"><em class="fa fa-fw fa-user"></em> &nbsp Min profil</a>
+                        <a style="color: #a7b1c2" th:href="@{/employee/my/account/{id}(id=${employeeId})}"><em class="fa fa-fw fa-user"></em> &nbsp Min profil</a>
                     </li>
                 </th:block>
-                <li sec:authorize="isAuthenticated()" style="position: absolute; bottom: 30px;">
+                <li sec:authorize="isAuthenticated()" style="position: fixed; bottom: 30px;">
                     <form th:action="@{/logout}" id="logout-form" method="post"></form>
-                    <a href="#" style="color: #a7b1c2;" onclick="$('#logout-form').submit();">
+                    <a href="#" id="logout-link" style="color: #a7b1c2;">
                         <i class="fa fa-sign-out"></i>&nbsp Log ud
                     </a>
                 </li>
 			</ul>
 		</div>
 	</aside>
+    <script type="module" th:src="@{/js/fragments/logout-button.js}"></script>
 </body>
 </html>

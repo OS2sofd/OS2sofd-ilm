@@ -8,7 +8,8 @@ import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 @Configuration
-@EnableJdbcHttpSession
+// Overwrites server.servlet.session.timeout in default.properties so we have to set interval here
+@EnableJdbcHttpSession(maxInactiveIntervalInSeconds = 4 * 60 * 60) // 4 hours
 public class SessionCacheConfiguration {
 
     @Bean
@@ -18,7 +19,7 @@ public class SessionCacheConfiguration {
         serializer.setCookiePath("/");
         serializer.setUseSecureCookie(true);
         serializer.setSameSite("None");
-        serializer.setCookieMaxAge(8 * 60 * 60); // 8 hours
+        serializer.setCookieMaxAge(4 * 60 * 60); // 4 hours
 
         return serializer;
     }

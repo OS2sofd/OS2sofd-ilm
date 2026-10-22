@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Set;
 
@@ -17,6 +18,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SofdPerson {
 	private String cpr;
@@ -28,4 +30,5 @@ public class SofdPerson {
 	private String chosenName;
 	private Set<SofdUser> users;
 	private Set<SofdAffiliation> affiliations;
+	private Set<SofdPhone> phones;
 }

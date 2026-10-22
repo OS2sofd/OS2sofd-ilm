@@ -1,15 +1,107 @@
+import verifyInputs from "../../fragments/verifyInputService.js";
+import initializeSwal from "../../fragments/swalService.js";
+import initializeDataTable from "../../fragments/dataTableService.js";
+
 var token = $("meta[name='_csrf']").attr("content");
-var activationService;
+let activationService;
 
 $(document).ready(function() {
     activationService = new ActivationService();
     activationService.init();
 
+    initActivationButtons();
+    initClockPicker();
+    initTimePicker();
+});
+
+function ActivationService() {
+    this.init = function () {
+        initializeDataTable('#activationTable', token, {
+            'columnDefs': [
+                {
+                    'targets': 4,
+                    'orderable': false
+                }
+            ]
+        }, false, true, true);
+    }
+
+    this.deleteActivation = function (id) {
+        const params = {
+            title: 'Slet Aktiverinsperiode?',
+            text: 'Er du sikker?',
+            id: id,
+            token: token,
+            success: 'Aktiveringsperiode slettet',
+            warning: 'Kunne ikke slette aktiveringsperiode',
+            url: '/rest/admin/activation/delete/',
+            route: '/admin/ad/activation',
+            method: 'DELETE'
+        };
+        initializeSwal(params);
+    }
+
+    this.editActivation = function (id) {
+        location.href = `/admin/ad/activation/edit/${id}`;
+    }
+
+    this.createActivation = async function () {
+        const name = document.getElementById('createActivationName').value;
+        const startTime = document.getElementById('createActivationStart').value;
+        const stopTime = document.getElementById('createActivationStop').value;
+        const exclude = document.getElementById('createWeekend').checked;
+
+        const isValid = verifyInputs([
+            { value: name, message: "Du skal angive et navn"},
+            { value: startTime, message: "Du skal angive et start tidspunkt"},
+            { value: stopTime, message: "Du skal angive et stop tidspunkt"}
+        ]);
+
+        if (!isValid) {
+            return;
+        }
+
+        try {
+            const url = '/rest/admin/activation/create';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    "content-type": "application/json",
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({
+                    "startTime": startTime,
+                    "stopTime": stopTime,
+                    "excludeWeekends": exclude,
+                    "name": name
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Kunne ikke oprette aktiveringsperioden");
+            }
+
+            toastr.success("Aktiveringsperiode blev oprettet");
+            location.href = '/admin/ad/activation';
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message);
+        }
+    }
+
+    this.cancelButton = function () {
+        location.href = '/admin/ad/activation';
+    }
+}
+
+function initClockPicker() {
     $('.clockpicker').clockpicker({
         autoclose: true,
         twelvehour: false
     });
+}
 
+function initTimePicker() {
     $('.time-filter').timepicker({
         timeFormat: 'HH:mm',
         interval: 15,
@@ -19,170 +111,31 @@ $(document).ready(function() {
         dropdown: true,
         scrollbar: true
     });
-});
+}
 
-function ActivationService() {
-    this.init = function () {
-        var activationTable = $('#activationTable').DataTable({
-            "destroy": true,
-            "bSort": true,
-            "paging": true,
-            "pageLength": 25,
-            "responsive": true,
-            "dom": "<'row'l<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-            "language": {
-                "search": "Søg",
-                "lengthMenu": "_MENU_ rækker per side",
-                "info": "Viser _START_ til _END_ af _TOTAL_ rækker",
-                "zeroRecords": "Ingen data...",
-                "infoEmpty": "Henter data...",
-                "infoFiltered": "(ud af _MAX_ rækker)",
-                "paginate": {
-                    "previous": "Forrige",
-                    "next": "Næste"
-                }
-            }
-        });
-        $.each($('.input-filter', activationTable.table().footer()), function () {
-            const column = activationTable.column($(this).index());
+function initActivationButtons() {
+    $(document).on('click', (e) => {
+        const target = e.target;
 
-            $('input, select', this).on('keyup change', function () {
-                if ($(this).is(':checkbox')) {
-                    // Custom search for weekends
-                    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                        const weekendValue = data[3];
-                        const isChecked = $('.i-checks').prop('checked');
+        const btnId = target.id || target.closest('[id]')?.id;
 
-                        if (!isChecked) {
-                            return weekendValue === 'Ikke inkluderet';
-                        } else {
-                            return weekendValue === 'Inkluderet';
-                        }
-                    });
-
-                    activationTable.draw();
-
-                    // Remove custom search after drawing
-                    $.fn.dataTable.ext.search.pop();
-                } else {
-                    // Normal input behavior
-                    if (column.search() !== this.value) {
-                        column.search(this.value).draw();
-                    }
-                }
-                });
-
-            $('.time-filter').on('changeTime', function() {
-                const selectedTime = $(this).val();
-
-                // Custom search
-                activationTable.column(2).search(selectedTime).draw();
-            });
-        });
-    }
-
-    this.deleteActivation = function (obj) {
-        let id = $(obj).data('id');
-
-        swal({
-                title: 'Slet Aktiverinsperiode?',
-                text: "Er du sikker?",
-                showCancelButton: true,
-                confirmButtonColor: "red",
-                confirmButtonText: "Ja",
-                cancelButtonText: "Nej",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            },
-            function(isConfirm) {
-                if(isConfirm) {
-                    $.ajax({
-                        method : "DELETE",
-                        url: "/rest/admin/activation/delete/" + id,
-                        headers: {
-                            "content-type": "application/json",
-                            'X-CSRF-TOKEN': token
-                        },
-                        success: function(data, textStatus, jqXHR) {
-                            toastr.success("Aktiveringsperiode slettet");
-                            window.location.href = window.location.origin + "/admin/ad/activation";
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            toastr.warning("Der opstod en fejl");
-                        }
-                    });
-                }
-            }
-        )
-    }
-
-    this.editActivation = function (obj) {
-        let id = $(obj).data("id");
-        window.location.href = window.location.origin + "/admin/ad/activation/edit/" + id;
-    }
-
-    this.createActivation = function () {
-        let name = $('#createActivationName').val();
-        let startTime = $('#createActivationStart').val();
-        let stopTime = $('#createActivationStop').val();
-        let exclude = $('#createWeekend').is(':checked');
-
-        let verify = activationService.verifyInput(startTime, stopTime, exclude, name);
-
-        console.log(startTime);
-
-        if (!verify) {
-            return;
+        switch (btnId) {
+            case 'cancel':
+                activationService.cancelButton();
+                break;
+            case 'confirm':
+                activationService.createActivation();
+                break;
         }
 
-        let data = {
-            startTime: startTime,
-            stopTime: stopTime,
-            excludeWeekends: exclude,
-            name: name
+        if (target.classList.contains('editActivationBtn') || target.closest('.editActivationBtn')) {
+            const btn = target.closest('.editActivationBtn');
+            const id = btn.dataset.id;
+            activationService.editActivation(id);
+        } else if (target.classList.contains('deleteActivationBtn') || target.closest('.deleteActivationBtn')) {
+            const btn = target.closest('.deleteActivationBtn');
+            const id = btn.dataset.id;
+            activationService.deleteActivation(id);
         }
-
-        $.ajax({
-            method : "POST",
-            url: "/rest/admin/activation/create",
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            data: JSON.stringify(data),
-            success: function(data, textStatus, jqXHR) {
-                toastr.success("Aktiveringsperiode oprettet");
-
-                window.location.href = window.location.origin + "/admin/ad/activation";
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                toastr.warning("Der opstod en fejl");
-            }
-        });
-    }
-
-    this.verifyInput = function (starttime, stoptime, exclude, name) {
-        if (name === null) {
-            toastr.warning("Du skal angive et navn");
-            return false;
-        }
-        if (starttime === null) {
-            taostr.warning("Du skal angive et start tidspunkt");
-            return false;
-        }
-        if (stoptime === null) {
-            taostr.warning("Du skal angive et stop tidspunkt");
-            return false;
-        }
-        if (exclude === null) {
-            taostr.warning("Du skal angive om du vil eksludere weekender");
-            return false;
-        }
-        return true;
-    }
-
-    this.cancelButton = function () {
-        window.location.href = "/admin/ad/activation";
-    }
-
+    });
 }

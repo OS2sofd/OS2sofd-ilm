@@ -9,24 +9,28 @@
 			</button>
 
 			<ul class="nav navbar-nav mr-auto" id="top-menu">
-				<li sec:authorize="hasRole('ROLE_SYSTEM_ADMINISTRATOR') || hasRole('ROLE_SYSTEM_READONLY')" th:class="${page != null && (#strings.startsWith(page, 'archetypes') || #strings.startsWith(page, 'activation') || #strings.startsWith(page, 'business') || #strings.startsWith(page, 'auditlog') || #strings.startsWith(page, 'cms') || #strings.startsWith(page, 'accounts')) ? 'active' : ''}">
+				<li sec:authorize="hasRole('ROLE_SYSTEM_ADMINISTRATOR') || hasRole('ROLE_SYSTEM_READONLY')" th:class="${page != null && (#strings.startsWith(page, 'archetypes') || #strings.startsWith(page, 'activation') || #strings.startsWith(page, 'business') || #strings.startsWith(page, 'auditlog') || #strings.startsWith(page, 'cms') || #strings.startsWith(page, 'accounts') || #strings.startsWith(page, 'invitation')) ? 'active' : ''}">
 				<a class="nav-link active" role="button" th:href="@{/admin/auditlog}">Administration</a>
 				</li>
                 <li sec:authorize="(hasRole('ROLE_SYSTEM_ADMINISTRATOR') || hasRole('ROLE_EMPLOYEE_ADMINISTRATOR') || hasRole('ROLE_SYSTEM_READONLY'))" th:class="${page != null && (#strings.startsWith(page, 'approve') || #strings.startsWith(page, 'employee')) ? 'active' : ''}">
                     <a class="nav-link active" role="button" th:href="@{/employees/overview}">Medarbejdere</a>
                 </li>
                 <li sec:authorize="(hasRole('ROLE_EMPLOYEE'))" th:class="${page != null && #strings.startsWith(page, 'profile') ? 'active' : ''}">
-                    <a class="nav-link active" role="button" th:href="@{/templates/employee/my/account}">Profil</a>
+                    <a class="nav-link active" role="button" th:href="@{/employee/my/account/{id}(id=${@securityUtil.getEmployee().orElse(null)?.getId()})}">Profil</a>
+                </li>
+                <li sec:authorize="(hasRole('ROLE_SYSTEM_ADMINISTRATOR') || hasRole('ROLE_EMPLOYEE_ADMINISTRATOR') || hasRole('ROLE_SYSTEM_READONLY'))" th:class="${page != null && #strings.startsWith(page, 'changelog') ? 'active' : ''}">
+                    <a class="nav-link active" role="button" th:href="@{/admin/changelog}">Ændringslog</a>
                 </li>
 			</ul>
-
-			<ul class="nav navbar-nav mr-auto" id="phone-top-menu">
-<!--				<li>-->
-<!--					<form th:action="@{/logout}" id="logout-form" method="post"></form>-->
-<!--					<a href="#" onclick="$('#logout-form').submit();">-->
-<!--						<i class="fa fa-fw fa-sign-out"></i>&nbsp Log ud-->
-<!--					</a>-->
-<!--				</li>-->
+			<ul sec:authorize="isAuthenticated()" class="nav navbar-top-links navbar-right">
+				<li>
+					<a class="navbar-version" th:text="'Version ' + ${appVersion}"></a>
+				</li>
+				<li th:if="${latestVersion != null and latestVersion != appVersion}">
+					<a class="navbar-version-outdated" th:title="'Ny version tilgængelig: ' + ${latestVersion}">
+						<i class="fa fa-fw fa-exclamation-triangle"></i> Ny version tilgængelig
+					</a>
+				</li>
 			</ul>
 		</nav>
 	</div>

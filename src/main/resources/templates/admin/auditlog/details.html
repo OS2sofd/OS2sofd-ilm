@@ -26,7 +26,7 @@
                                 <div class="form-group row">
                                     <label class="col-sm-2 col-form-label">Tidspunkt</label>
                                     <div class="col-sm-10">
-                                        <input type="text" class="form-control" disabled="disabled" th:value="${#temporals.format(auditLog.tts, 'yyyy-MM-dd  HH:mm:ss')}"/>
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${#temporals.format(auditLog.tts, 'dd/MM/yyyy  HH:mm:ss')}"/>
                                     </div>
                                 </div>
 
@@ -47,7 +47,7 @@
                                 <div class="form-group row">
                                     <label class="col-sm-2 col-form-label">Handlingstype</label>
                                     <div class="col-sm-10">
-                                        <input type="text" class="form-control" disabled="disabled" th:value="${auditLog.logAction.message}"/>
+                                        <input type="text" class="form-control" disabled="disabled" th:value="${auditLog?.logAction?.type?.getTranslation()}"/>
                                     </div>
                                 </div>
 
@@ -64,7 +64,7 @@
                                         <textarea id="detailContent" th:utext="${auditLog.details?.detailContent}"></textarea>
                                     </div>
                                 </div>
-                                <button class="btn btn-primary" type="button"  style="width: 150px !important" th:data-id="${auditLog.correlationId}" onclick="auditLogService.findAssociatedLogs(this)">Se associerede logs</button>
+                                <button class="btn btn-primary" type="button" id="findAssociatedLogsBtn" style="width: 150px !important" th:data-id="${auditLog.correlationId}">Se associerede logs</button>
                             </form>
                         </div>
                     </div>
@@ -75,6 +75,6 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/admin/auditlog/auditlog.js}"></script>
+<script type="module" th:src="@{/js/admin/auditlog/auditlog.js}"></script>
 </body>
 </html>

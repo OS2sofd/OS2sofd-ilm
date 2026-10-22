@@ -3,6 +3,7 @@ package dk.digitalidentity.OS2ilm.model.view;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dk.digitalidentity.OS2ilm.model.entity.enums.ApproveStatus;
 import dk.digitalidentity.OS2ilm.model.entity.enums.EmployeeStatus;
+import dk.digitalidentity.OS2ilm.model.entity.enums.ExchangeAccountStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -37,6 +38,10 @@ public class EmployeeView {
 	private String cvr;
 
 	@Column
+	@JsonProperty("businessName")
+	private String businessName;
+
+	@Column
 	@JsonProperty("orgUnitName")
 	private String orgUnitName;
 
@@ -55,11 +60,20 @@ public class EmployeeView {
 
 	@Column
 	@JsonProperty("businessId")
-	private long businessId;
+	private Long businessId;
 
 	@Column
 	@JsonProperty("samAccountName")
 	private String samAccountName;
+
+	@Column
+	@JsonProperty("acceptedTos")
+	private boolean acceptedTos;
+
+	@Column
+	@Enumerated(EnumType.STRING)
+	@JsonProperty("exchangeAccountStatus")
+	private ExchangeAccountStatus exchangeAccountStatus;
 
 	public static Specification<EmployeeView> findByCvr(List<String> cvrList) {
 		return (root, query, criteriaBuilder) -> {

@@ -1,0 +1,44 @@
+#logo-name {
+    font-size: 6.25rem;
+}
+
+.info-icon-wrapper {
+    position: relative;
+}
+
+.info-icon-wrapper > .form-control {
+    padding-right: 32px;
+}
+
+.info-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaaaaa;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.info-icon:hover {
+    color: #23c6c8;
+}
+
+.textarea-wrapper .info-icon {
+    top: 10px;
+    transform: none;
+}
+
+.searchCvr.is-valid,
+.searchCvr.is-invalid {
+    background-image: none;
+}
+
+@media (min-width: 768px) {
+    .middle-box {
+        max-width: 40rem;
+    }
+    .wrapper .middle-box {
+        margin-top: 0;
+    }
+}

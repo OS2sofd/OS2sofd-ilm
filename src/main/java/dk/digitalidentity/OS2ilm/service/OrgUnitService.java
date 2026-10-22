@@ -1,15 +1,16 @@
 package dk.digitalidentity.OS2ilm.service;
 
-import dk.digitalidentity.OS2ilm.model.dao.OrgUnitDao;
-import dk.digitalidentity.OS2ilm.model.entity.OUTreeForm;
-import dk.digitalidentity.OS2ilm.model.entity.OrgUnit;
-import lombok.RequiredArgsConstructor;
+import java.util.Comparator;
+import java.util.List;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.List;
+import dk.digitalidentity.OS2ilm.model.dao.OrgUnitDao;
+import dk.digitalidentity.OS2ilm.model.entity.OUTreeForm;
+import dk.digitalidentity.OS2ilm.model.entity.OrgUnit;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,6 @@ public class OrgUnitService {
 	}
 
 	public List<OUTreeForm> getAllTree() {
-		@SuppressWarnings("deprecation")
 		List<OUTreeForm> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL, (RowMapper<OUTreeForm>) (rs, rownum) -> {
 			OUTreeForm ou = new OUTreeForm();
 

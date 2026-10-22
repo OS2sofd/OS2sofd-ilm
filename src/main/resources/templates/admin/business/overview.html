@@ -19,14 +19,14 @@
                             <p>
                                 Her har du et overblik over alle virksomheder i systemet og har mulighed for at oprette og redigere dem.
                             </p>
-                            <button th:if="${isAdmin || isLeader}" type="button" onclick="window.location.href='/business/create';" style="float: right" class="btn btn-w-m btn-primary">Opret</button>
+                            <a th:if="${isAdmin || isLeader}" href="/business/create" style="float: right" class="btn btn-w-m btn-primary">Opret</a>
                             <div class="table-responsive">
                                 <table id="businessTable" class="table table-striped table-bordered table-hover" >
                                     <thead>
                                     <tr>
                                         <th>Navn</th>
                                         <th>CVR</th>
-                                        <th>Virksomhedsprefix</th>
+                                        <th>Navngivningsstrategi</th>
                                         <th>Handlinger</th>
                                     </tr>
                                     </thead>
@@ -44,12 +44,17 @@
                                     <tr th:each="business : ${businesses}">
                                         <td th:text="${business.name}" th:value="${business.id}"></td>
                                         <td th:text="${business.cvr}" th:value="${business.id}"></td>
-                                        <td th:text="${business.prefix}" th:value="${business.id}"></td>
+                                        <td th:switch="${business?.businessEmploymentSettings?.nameStrategy?.name()}" th:value="${business.id}">
+                                            <span th:case="'SOFD'">SOFD genereret</span>
+                                            <span th:case="'TAILORED'">Virksomhedstilpasset</span>
+                                            <span th:case="'CUSTOM'">Manuel</span>
+                                            <span th:case="*" th:text="${'ILM genereret (' + (business.prefix ?: '') + ')'}"></span>
+                                        </td>
                                         <td>
                                             <span>
-                                                <a th:data-id="${business.id}" onclick="businessService.openDetails(this)"><em class="fa fa-fw fa-search"></em></a>
-                                                <a th:if="${isAdmin || isLeader}" th:data-id="${business.id}" onclick="businessService.editAgency(this)"><em class="fa fa-fw fa-pencil"></em></a>
-                                                <a th:if="${isAdmin || isLeader}" th:data-id="${business.id}" onclick="businessService.deleteAgency(this)"><em class="fa fa-fw fa-times"></em></a>
+                                                <a th:data-id="${business.id}" class="openDetailsBtn"><em class="fa fa-fw fa-search"></em></a>
+                                                <a th:if="${isAdmin || isLeader}" th:data-id="${business.id}" class="editAgencyBtn"><em class="fa fa-fw fa-pencil"></em></a>
+                                                <a th:if="${isAdmin || isLeader}" th:data-id="${business.id}" class="deleteAgencyBtn"><em class="fa fa-fw fa-times"></em></a>
                                             </span>
                                         </td>
                                     </tr>
@@ -65,7 +70,7 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/admin/business/business.js}"></script>
+<script type="module" th:src="@{/js/admin/business/business.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

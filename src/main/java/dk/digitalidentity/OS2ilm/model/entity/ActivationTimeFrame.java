@@ -1,6 +1,11 @@
 package dk.digitalidentity.OS2ilm.model.entity;
 
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,14 +13,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-
+@Audited
 @Getter
 @Setter
 @Entity(name = "activation_time_frame")
@@ -39,9 +42,19 @@ public class ActivationTimeFrame {
 	private boolean excludeWeekends;
 
 	@OneToMany(mappedBy = "activationTimeFrame", cascade = CascadeType.ALL)
+	@NotAudited
 	@JsonIgnore
 	private List<AdUser> adUsers = new ArrayList<>();
 
-	@OneToOne(mappedBy = "activationTimeFrame")
-	private Employee employee;
+	@OneToMany(mappedBy = "activationTimeFrame")
+	@NotAudited
+	private List<Employee> employees;
+
+	@OneToMany(mappedBy = "activationTimeFrame")
+	@NotAudited
+	private List<Business> businesses;
+
+	public String getDescription() {
+		return "Fra " + startTime + " til " + stopTime + " og weekend: " + (excludeWeekends ? "ikke inkluderet" : "inkluderet");
+	}
 }

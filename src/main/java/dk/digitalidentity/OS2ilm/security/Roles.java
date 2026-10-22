@@ -12,6 +12,9 @@ public class Roles {
 	// roles granted either through database assignment combined with MitID (erhverv) login, or through KOMBIT login
 	public static final String ROLE_EMPLOYEE_ADMINISTRATOR = "ROLE_EMPLOYEE_ADMINISTRATOR";	// chef/leder
 
+	// role granted when a MitID (personal) login is matched to a leader in the database
+	public static final String ROLE_LEADER = "ROLE_LEADER"; // Leder
+
 	// roles granted only through KOMBIT login for municipal employees only
 	public static final String ROLE_SYSTEM_ADMINISTRATOR = "ROLE_SYSTEM_ADMINISTRATOR";	// Systemadministrator
 	public static final String ROLE_SYSTEM_READONLY = "ROLE_SYSTEM_READONLY"; // Systemadministrator med læseadgang

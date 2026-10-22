@@ -9,7 +9,7 @@ $(document).ready(function() {
     // Process and format existing values
     date.each(function() {
         let existingValue = $(this).val();
-        if (existingValue && existingValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        if (existingValue?.match(/^\d{4}-\d{2}-\d{2}$/)) {
             let dateObj = new Date(existingValue + 'T00:00:00Z');
             $(this).datepicker('setUTCDate', dateObj);
         }

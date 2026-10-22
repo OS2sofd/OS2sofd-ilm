@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>dk.digitalidentity</groupId>
 	<artifactId>OS2ilm</artifactId>
-	<version>1.0.0</version>
+	<version>2026.1.0</version>
 	<name>OS2ilm</name>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.3</version>
+		<version>4.0.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
 	<properties>
-		<java.version>21</java.version>
+		<java.version>25</java.version>
 	</properties>
 
 	<build>
@@ -23,6 +23,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<source>25</source>
+					<target>25</target>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
@@ -38,9 +40,9 @@
 				<configuration>
 					<layout>ZIP</layout>
 					<addResources>true</addResources>
-					<directories>
-						<directory>${basedir}/config</directory>
-					</directories>
+					<additionalClasspathElements>
+						<additionalClasspathElement>${basedir}/config</additionalClasspathElement>
+					</additionalClasspathElements>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
@@ -64,7 +66,23 @@
 					</java>
 				</configuration>
 			</plugin>
+
+			<plugin>
+			<groupId>io.github.git-commit-id</groupId>
+			<artifactId>git-commit-id-maven-plugin</artifactId>
+			</plugin>
+
 		</plugins>
+
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>${project.basedir}</directory>
+				<includes><include>CHANGELOG.md</include></includes>
+			</resource>
+		</resources>
 
 		<finalName>OS2ilm</finalName>
 	</build>
@@ -81,10 +99,14 @@
 			<version>3.3.7</version>
 		</dependency>
 
+		<!-- springdoc 3.0.1 is compiled against Jackson 2.x and cannot run without it.
+		     Both Jackson 2 (com.fasterxml.jackson) and Jackson 3 (tools.jackson) use different
+		     package namespaces so they coexist without conflict. Remove this comment when
+		     springdoc releases a version with native Jackson 3 support. -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.2.0</version>
+			<version>3.0.1</version>
 		</dependency>
 
 		<dependency>
@@ -98,12 +120,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-web</artifactId>
-			<version>6.2.6</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
@@ -111,6 +127,13 @@
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
+			<!-- Delete when new flyway version uses jackson 3 -->
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-databind</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -121,7 +144,7 @@
 		<dependency>
 			<groupId>com.github.darrachequesne</groupId>
 			<artifactId>spring-data-jpa-datatables</artifactId>
-			<version>6.0.4</version>
+			<version>8.0.0</version>
 		</dependency>
 
 		<dependency>
@@ -155,7 +178,7 @@
 		<dependency>
 			<groupId>dk.digitalidentity</groupId>
 			<artifactId>saml-module</artifactId>
-			<version>4.3.2</version>
+			<version>4.6.4</version>
 		</dependency>
 
 		<dependency>
@@ -174,14 +197,24 @@
 		<dependency>
 			<groupId>dk.digitalidentity.framework</groupId>
 			<artifactId>framework-activedirectory</artifactId>
-			<version>1.1.0</version>
+			<version>3.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-restclient</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
-			<version>5.4.3</version>
 		</dependency>
+
+                <dependency>
+                        <groupId>org.apache.httpcomponents.core5</groupId>
+                        <artifactId>httpcore5</artifactId>
+                </dependency>
+
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -192,12 +225,24 @@
 		<dependency>
 			<groupId>dk.digitalidentity</groupId>
 			<artifactId>emailService</artifactId>
-			<version>1.1.0</version>
+			<version>1.2.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -210,6 +255,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-testcontainers</artifactId>
+			<version>4.0.2</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -234,21 +280,24 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>mariadb</artifactId>
+			<version>1.21.4</version>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>junit-jupiter</artifactId>
+			<version>1.21.4</version>
 			<scope>test</scope>
 		</dependency>
 
+<!--
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
+-->
 		<dependency>
 			<groupId>org.reflections</groupId>
 			<artifactId>reflections</artifactId>
@@ -275,13 +324,31 @@
 		<dependency>
 			<groupId>dk.digitalidentity</groupId>
 			<artifactId>simple-queue</artifactId>
-			<version>1.0.5</version>
+			<version>2.0.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>dk.digitalidentity.framework</groupId>
+			<artifactId>framework-s3fileshare</artifactId>
+			<version>2.0.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
 			<artifactId>owasp-java-html-sanitizer</artifactId>
 			<version>20240325.1</version>
+		</dependency>
+
+		<dependency>
+				<groupId>dk.digitalidentity</groupId>
+				<artifactId>reporter</artifactId>
+				<version>1.0.10</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.24.0</version>
 		</dependency>
 
 	</dependencies>

@@ -14,6 +14,7 @@ public interface ArchetypeDao extends JpaRepository<Archetype, Long> {
 	@Query("SELECT a FROM archetype a " +
 			"LEFT JOIN FETCH a.userRoles " +
 			"LEFT JOIN FETCH a.adGroups " +
+			"LEFT JOIN FETCH a.roleGroups " +
 			"WHERE a.id = :id")
-	Archetype findByIdWithUserRolesAndAdGroups(@Param("id") long id);
+	Archetype findByIdWithUserRolesAndAdGroupsAndRoleGroups(@Param("id") long id);
 }

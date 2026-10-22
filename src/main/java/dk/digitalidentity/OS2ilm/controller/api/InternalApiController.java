@@ -1,22 +1,23 @@
 package dk.digitalidentity.OS2ilm.controller.api;
 
-import dk.digitalidentity.OS2ilm.model.entity.Admin;
+import dk.digitalidentity.OS2ilm.model.entity.AdUser;
+import dk.digitalidentity.OS2ilm.exception.ADOperationException;
 import dk.digitalidentity.OS2ilm.model.entity.Archetype;
 import dk.digitalidentity.OS2ilm.model.entity.Business;
 import dk.digitalidentity.OS2ilm.model.entity.Employee;
-import dk.digitalidentity.OS2ilm.model.exception.NotCommittedException;
 import dk.digitalidentity.OS2ilm.model.entity.OrgUnit;
 import dk.digitalidentity.OS2ilm.model.entity.enums.ApproveStatus;
+import dk.digitalidentity.OS2ilm.model.exception.NotCommittedException;
 import dk.digitalidentity.OS2ilm.model.exception.handler.ApiExceptionHandler;
 import dk.digitalidentity.OS2ilm.security.Roles;
 import dk.digitalidentity.OS2ilm.service.ActiveDirectorySyncService;
-import dk.digitalidentity.OS2ilm.service.AdminService;
+import dk.digitalidentity.OS2ilm.service.AdUserService;
 import dk.digitalidentity.OS2ilm.service.ArchetypeService;
 import dk.digitalidentity.OS2ilm.service.BusinessService;
 import dk.digitalidentity.OS2ilm.service.EmployeeService;
 import dk.digitalidentity.OS2ilm.service.InternalAPIService;
 import dk.digitalidentity.OS2ilm.service.OrgUnitService;
-import dk.digitalidentity.OS2ilm.service.SofdService;
+import dk.digitalidentity.OS2ilm.service.QueueHelperService;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,19 +44,18 @@ import java.util.UUID;
 public class InternalApiController {
 
 	private final BusinessService businessService;
-	private final AdminService adminService;
 	private final EmployeeService employeeService;
 	private final ArchetypeService archetypeService;
 	private final ActiveDirectorySyncService activeDirectorySyncService;
+	private final AdUserService adUserService;
 	private final OrgUnitService orgUnitService;
 	private final InternalAPIService internalAPIService;
-	private final SofdService sofdService;
+	private final QueueHelperService queueHelperService;
 
 	public record BusinessRequest(String name, String cvr, String prefix) {}
-	public record AdminRequest(String name, String uuid, String email) {}
 	public record EmployeeRequest(String name, String cpr, String email, long businessId, String approved, String cvr) {}
 	public record ArchetypeRequest(String name) {}
-	public record DataInjectionRequest(List<BusinessRequest> businesses, List<AdminRequest> admins, List<EmployeeRequest> employees, List<ArchetypeRequest> archetypes) {}
+	public record DataInjectionRequest(List<BusinessRequest> businesses, List<EmployeeRequest> employees, List<ArchetypeRequest> archetypes) {}
 	@PostMapping("/inject/demodata")
 	public ResponseEntity<?> injectDemoData(@RequestBody DataInjectionRequest requestBody) {
 		if (requestBody == null) {
@@ -76,24 +76,12 @@ public class InternalApiController {
 			businessService.saveAll(newbusinesses);
 		}
 
-		// Load admins
-		List<Admin> newAdmins = new ArrayList<>();
-		for (AdminRequest adminRequest : requestBody.admins) {
-			Admin admin = new Admin();
-			admin.setName(adminRequest.name);
-			admin.setUuid(adminRequest.uuid);
-			admin.setEmail(adminRequest.email);
-			newAdmins.add(admin);
-		}
-		if (!newAdmins.isEmpty()) {
-			adminService.saveAll(newAdmins);
-		}
-
 		// Load employees
 		List<Employee> newEmployees = new ArrayList<>();
 		for (EmployeeRequest employeeRequest : requestBody.employees) {
 			Employee employee = new Employee();
 			employee.setExtUuid(UUID.randomUUID().toString());
+			employee.setExtAffiliationUuid(UUID.randomUUID().toString());
 			employee.setName(employeeRequest.name);
 			employee.setCpr(employeeRequest.cpr);
 			employee.setEmail(employeeRequest.email);
@@ -122,7 +110,7 @@ public class InternalApiController {
 
 			newEmployees.forEach(employee -> {
 				if (StringUtils.hasText(employee.getCpr())) {
-					sofdService.sofdCreateAndUpdateHelper(employee);
+					queueHelperService.sofdHelper(employee.getId());
 				}
 			});
 		}
@@ -148,7 +136,12 @@ public class InternalApiController {
 		if (employee == null) {
 			return new ResponseEntity<>("Employee not found", HttpStatus.BAD_REQUEST);
 		}
-		activeDirectorySyncService.forcePasswordChange(employee);
+		try {
+			activeDirectorySyncService.forcePasswordChange(employee);
+		} catch (ADOperationException ex) {
+			log.warn("Failed to force password change for employee {}: {}", id, ex.getMessage());
+			return new ResponseEntity<>("Failed to force password change in AD: " + ex.getMessage(), HttpStatus.BAD_GATEWAY);
+		}
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
@@ -225,5 +218,47 @@ public class InternalApiController {
 		} catch (IllegalArgumentException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
 		}
+	}
+
+	@PostMapping("poke/create/queue/{employeeId}")
+	public ResponseEntity<?> pokeCreateQueue(@PathVariable long employeeId) {
+		Employee employee = employeeService.findById(employeeId);
+		if (employee == null) {
+			return new ResponseEntity<>("Employee not found", HttpStatus.NOT_FOUND);
+		}
+
+		queueHelperService.sofdHelper(employeeId);
+		return new ResponseEntity<>("Added employee to sofd create queue", HttpStatus.OK);
+	}
+
+	@PostMapping("ad/backfill-cpr")
+	public ResponseEntity<?> backfillCpr() {
+		List<AdUser> adUsers = adUserService.findAll();
+		int updated = 0;
+		int skipped = 0;
+		List<String> errors = new ArrayList<>();
+
+		for (AdUser adUser : adUsers) {
+			Employee employee = adUser.getEmployee();
+			if (employee == null || employee.getCpr() == null || employee.getCpr().isBlank()) {
+				skipped++;
+				continue;
+			}
+
+			try {
+				activeDirectorySyncService.setCprAttribute(employee.getId(), employee.getCpr());
+				updated++;
+			} catch (Exception e) {
+				log.warn("Failed to backfill CPR for AD user {}: {}", adUser.getName(), e.getMessage());
+				errors.add(adUser.getName() + ": " + e.getMessage());
+			}
+		}
+
+		log.info("Backfill complete: updated={}, skipped={}, errors={}", updated, skipped, errors.size());
+		String result = "Backfill complete: updated=" + updated + ", skipped=" + skipped + ", errors=" + errors.size();
+		if (!errors.isEmpty()) {
+			result += ", failed accounts: " + String.join(", ", errors);
+		}
+		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
 }

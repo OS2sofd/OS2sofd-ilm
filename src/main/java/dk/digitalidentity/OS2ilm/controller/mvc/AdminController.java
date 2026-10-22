@@ -1,34 +1,45 @@
 package dk.digitalidentity.OS2ilm.controller.mvc;
 
-import dk.digitalidentity.OS2ilm.model.entity.ActivationTimeFrame;
-import dk.digitalidentity.OS2ilm.model.entity.enums.AccountStatus;
-import dk.digitalidentity.OS2ilm.model.role.RequireReadOnlyAdministrator;
-import dk.digitalidentity.OS2ilm.model.role.RequireSystemAdministrator;
-import dk.digitalidentity.OS2ilm.security.SecurityUtil;
-import dk.digitalidentity.OS2ilm.service.ActivationTimeFrameService;
-import dk.digitalidentity.OS2ilm.service.AdUserService;
-import dk.digitalidentity.OS2ilm.service.EmployeeService;
-import dk.digitalidentity.OS2ilm.service.cms.CmsMessageBundle;
-import dk.digitalidentity.OS2ilm.model.entity.enums.EmailPlaceHolder;
-import dk.digitalidentity.OS2ilm.service.cms.CmsMessageService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Base64;
+
+import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
+import dk.digitalidentity.OS2ilm.controller.rest.EmailTemplateRestController.EmailTemplateLogRecord;
+import dk.digitalidentity.OS2ilm.model.entity.CmsMessage;
+import dk.digitalidentity.OS2ilm.model.entity.EmailTemplate;
+import dk.digitalidentity.OS2ilm.model.entity.enums.LogAction;
+import dk.digitalidentity.OS2ilm.model.entity.dto.CmsMessageRecord;
+import dk.digitalidentity.OS2ilm.service.ChangelogService;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.List;
+import dk.digitalidentity.OS2ilm.model.entity.ActivationTimeFrame;
+import dk.digitalidentity.OS2ilm.model.entity.enums.AccountStatus;
+import dk.digitalidentity.OS2ilm.model.entity.enums.CmsType;
+import dk.digitalidentity.OS2ilm.model.entity.enums.CmsProperty;
+import dk.digitalidentity.OS2ilm.model.role.RequireReadOnlyAdministrator;
+import dk.digitalidentity.OS2ilm.model.role.RequireSystemAdministrator;
+import dk.digitalidentity.OS2ilm.security.SecurityUtil;
+import dk.digitalidentity.OS2ilm.service.ActivationTimeFrameService;
+import dk.digitalidentity.OS2ilm.service.AuditLogService;
+import dk.digitalidentity.OS2ilm.service.EmailTemplateService;
+import dk.digitalidentity.OS2ilm.service.cms.CmsMessageBundle;
+import dk.digitalidentity.OS2ilm.service.cms.CmsMessageService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
@@ -37,37 +48,36 @@ import java.util.List;
 public class AdminController {
 	private final CmsMessageBundle cmsMessageBundle;
 	private final CmsMessageService cmsMessageService;
-	private final AdUserService adUserService;
 	private final ActivationTimeFrameService activationTimeFrameService;
-	private final EmployeeService employeeService;
 	private final SecurityUtil securityUtil;
+	private final EmailTemplateService emailTemplateService;
+	private final AuditLogService auditLogService;
+	private final IlmConfiguration configuration;
+	private final ChangelogService changelogService;
 
 	@RequireReadOnlyAdministrator
 	@GetMapping("/admin/cms")
 	public String admin(Model model) {
-		model.addAttribute("cmsMessage", cmsMessageBundle.getAll());
+		model.addAttribute("cmsText", cmsMessageBundle.getByType(CmsType.TEXT));
 
 		return "admin/cms/cms";
 	}
 
-	record CmsMessage(String key, String value, String description) { }
-
 	@GetMapping("/admin/cms-edit")
-	public String editCms(Model model, @RequestParam("key") String key) {
-		CmsMessage dto = new CmsMessage(key, cmsMessageBundle.getText(key, true), cmsMessageBundle.getDescription(key));
+	public String editCms(Model model, @RequestParam("key") String key, @RequestParam(value = "fileTooLarge", required = false) Boolean fileTooLarge) {
+		CmsMessageRecord dto = new CmsMessageRecord(key, cmsMessageBundle.getText(key, true), cmsMessageBundle.getDescription(key));
 		model.addAttribute("cmsMessage", dto);
-		model.addAttribute("placeholders", EmailPlaceHolder.values());
+		model.addAttribute("showError", fileTooLarge);
 
 		return "admin/cms/edit";
 	}
 
 	@PostMapping("/admin/cms-edit")
-	public String saveCms(Model model, CmsMessage cmsMessage) {
-		if (cmsMessage.value != null && cmsMessage.value.length() > 65536) {
-			CmsMessage dto = new CmsMessage(cmsMessage.key, cmsMessage.value, cmsMessageBundle.getDescription(cmsMessage.key));
+	public String saveCms(Model model, CmsMessageRecord cmsMessage) {
+		if (cmsMessage.value() != null && cmsMessage.value().length() > 65536) {
+			CmsMessageRecord dto = new CmsMessageRecord(cmsMessage.key(), cmsMessage.value(), cmsMessageBundle.getDescription(cmsMessage.key()));
 			model.addAttribute("cmsMessage", dto);
 			model.addAttribute("showError", true);
-			model.addAttribute("placeholders", EmailPlaceHolder.values());
 			return "admin/cms/edit";
 		}
 
@@ -79,18 +89,17 @@ public class AdminController {
 				.allowAttributes("href", "target").onElements("a")
 				.allowAttributes("class", "style", "id", "name").globally()
 				.toFactory();
-		String safeHTML = policy.sanitize(cmsMessage.value);
+		String safeHTML = policy.sanitize(cmsMessage.value());
 
-		dk.digitalidentity.OS2ilm.model.entity.CmsMessage cms = cmsMessageService.getByCmsKey(cmsMessage.key);
+		CmsMessage cms = cmsMessageService.getByCmsKey(cmsMessage.key());
 
 		if (cms == null) {
-			cms = new dk.digitalidentity.OS2ilm.model.entity.CmsMessage();
-			cms.setCmsKey(cmsMessage.key);
+			cms = new CmsMessage();
+			cms.setCmsKey(cmsMessage.key());
 		}
 
 		cms.setCmsValue(safeHTML);
 		cms.setLastUpdated(LocalDateTime.now());
-		// TODO: Add logging
 		cmsMessageService.save(cms);
 
 		return "redirect:/admin/cms";
@@ -99,15 +108,15 @@ public class AdminController {
 	@PostMapping("/admin/cms-edit/logo")
 	public String saveCms(@RequestParam("value") MultipartFile file, @RequestParam("key") String key, Model model) throws IOException {
 		String base64 = Base64.getEncoder().encodeToString(file.getBytes());
-		dk.digitalidentity.OS2ilm.model.entity.CmsMessage logo = cmsMessageService.getByCmsKey("cms.logo");
+		CmsMessage logo = cmsMessageService.getByCmsKey(CmsProperty.LOGO.getKey());
 
 		if (logo == null) {
-			logo = new dk.digitalidentity.OS2ilm.model.entity.CmsMessage();
-			logo.setCmsKey("cms.logo");
+			logo = new CmsMessage();
+			logo.setCmsKey(CmsProperty.LOGO.getKey());
 		}
 
 		if (base64.length() > 65536) {
-			CmsMessage dto = new CmsMessage(logo.getCmsKey(), null, cmsMessageBundle.getDescription(logo.getCmsKey()));
+			CmsMessageRecord dto = new CmsMessageRecord(logo.getCmsKey(), null, cmsMessageBundle.getDescription(logo.getCmsKey()));
 			model.addAttribute("cmsMessage", dto);
 			model.addAttribute("showError", true);
 
@@ -117,7 +126,6 @@ public class AdminController {
 
 		logo.setCmsValue(base64);
 		logo.setLastUpdated(LocalDateTime.now());
-		// TODO: Add logging
 		cmsMessageService.save(logo);
 
 		return "redirect:/admin/cms";
@@ -128,11 +136,6 @@ public class AdminController {
 	@GetMapping("/admin/ad/accounts")
 	@Transactional
 	public String accounts(Model model) {
-		List<AdUserDTO> userDTOS = adUserService.findAll().stream()
-				.map(u -> new AdUserDTO(u.getId(), u.getName(), u.status, u.getStartDate(), u.getStopDate(), u.getEmployee() != null ? employeeService.listAdUsers(u.getEmployee()) : "" ))
-				.toList();
-
-		model.addAttribute("users", userDTOS);
 		return "admin/ad/overview";
 	}
 
@@ -157,4 +160,85 @@ public class AdminController {
 		return "admin/ad/createActivation";
 	}
 
+	@GetMapping("/admin/invitation/form")
+	public String invitationForm() {
+		return "admin/invitation/invitationForm";
+	}
+
+	@RequireReadOnlyAdministrator
+	@GetMapping("/admin/emailtemplate/list")
+	public String emailTemplates(Model model) {
+		model.addAttribute("templates", emailTemplateService.findAll());
+
+		return "admin/emailtemplate/list";
+	}
+
+	public record EmailTemplateForm(long id, String subject, String content) {}
+
+	@GetMapping("/admin/emailtemplate/edit/{id}")
+	public String editEmailTemplate(Model model, @PathVariable long id) {
+		EmailTemplate emailTemplate = getEmailTemplate(id);
+		populateEmailTemplateModel(model, emailTemplate, new EmailTemplateForm(emailTemplate.getId(), emailTemplate.getSubject(), emailTemplate.getContent()), null, null);
+
+		return "admin/emailtemplate/edit";
+	}
+
+	@PostMapping("/admin/emailtemplate/edit")
+	public String saveEmailTemplate(Model model, EmailTemplateForm form) {
+		EmailTemplate emailTemplate = getEmailTemplate(form.id());
+
+		String error = emailTemplateService.validate(emailTemplate, form.subject(), form.content());
+		if (error != null) {
+			log.warn("Invalid email template {} submitted: {}", emailTemplate.getTemplateType(), error);
+			populateEmailTemplateModel(model, emailTemplate, form, error, null);
+
+			return "admin/emailtemplate/edit";
+		}
+
+		// do not save content the sanitizer changed - show the admin the cleaned version first, so nothing disappears silently
+		EmailTemplateService.SanitizedContent sanitizedContent = emailTemplateService.sanitize(form.content());
+		if (sanitizedContent.hasRemoved()) {
+			log.warn("Email template {} submitted with disallowed HTML, not saved: {}", emailTemplate.getTemplateType(), sanitizedContent.removed());
+			EmailTemplateForm sanitizedForm = new EmailTemplateForm(form.id(), form.subject(), sanitizedContent.content());
+			populateEmailTemplateModel(model, emailTemplate, sanitizedForm, null, emailTemplateService.getRemovedHtmlWarning(sanitizedContent) + " Skabelonen er ikke gemt endnu - gem igen for at gemme den rensede version.");
+
+			return "admin/emailtemplate/edit";
+		}
+
+		emailTemplate.setSubject(form.subject().trim());
+		emailTemplate.setContent(sanitizedContent.content());
+		EmailTemplate saved = emailTemplateService.save(emailTemplate);
+
+		auditLogService.log(securityUtil.getPerformerId(), securityUtil.getName(), saved.getId(), saved.getTemplateType().getTitle(), LogAction.EMAIL_TEMPLATE_UPDATED, "Mailskabelon opdateret",
+				new EmailTemplateLogRecord(saved.getId(), saved.getTemplateType(), saved.getSubject(), saved.getContent(), saved.isEnabled()));
+
+		return "redirect:/admin/emailtemplate/list";
+	}
+
+	private EmailTemplate getEmailTemplate(long id) {
+		EmailTemplate emailTemplate = emailTemplateService.findById(id);
+		if (emailTemplate == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Mailskabelonen findes ikke");
+		}
+
+		return emailTemplate;
+	}
+
+	private void populateEmailTemplateModel(Model model, EmailTemplate emailTemplate, EmailTemplateForm form, String error, String warning) {
+		model.addAttribute("template", emailTemplate);
+		model.addAttribute("form", form);
+		model.addAttribute("placeholders", emailTemplate.getTemplateType().getPlaceholders());
+		model.addAttribute("maxSubjectLength", EmailTemplateService.MAX_SUBJECT_LENGTH);
+		model.addAttribute("error", error);
+		model.addAttribute("warning", warning);
+		model.addAttribute("isS3Enabled", StringUtils.hasLength(configuration.getCustomer().getS3FileBasePrefix()));
+	}
+
+	@RequireReadOnlyAdministrator
+	@GetMapping("/admin/changelog")
+	public String changelog(Model model) {
+		model.addAttribute("changelogHtml", changelogService.getHtml());
+
+		return "admin/changelog";
+	}
 }

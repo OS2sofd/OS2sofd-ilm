@@ -9,7 +9,7 @@ public class IdentityProviders {
 
 	// employee login
 	private String employeeIdPEntityId = "https://saml.n2adgangsstyring.stoettesystemerne.dk/runtime";
-	private String employeeIdPMetadata = "https://n2adgangsstyring.stoettesystemerne.dk/runtime/saml2/metadata.idp";
+	private String employeeIdPMetadata = "https://n2adgangsstyring.stoettesystemerne.dk/runtime/saml2/metadata.idp?samlprofile=nemlogin3";
 
 	// employee login role constants
 	private String employeeRoleSystemAdministrator = "https://os2ilm.dk/roles/usersystemrole/sysadmin/1";
@@ -23,4 +23,7 @@ public class IdentityProviders {
 
 	// constraints
 	private String cvrConstraint = "http://os2ilm.dk/constraints/agency/1";
+
+	// leader role for internal IdP
+	private String employeeRoleLeader = "https://os2ilm.dk/roles/usersystemrole/leader/1";
 }

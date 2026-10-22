@@ -33,6 +33,10 @@ public class ApprovedEmployeeView {
 	private String cvr;
 
 	@Column
+	@JsonProperty("businessName")
+	private String businessName;
+
+	@Column
 	@Enumerated(EnumType.STRING)
 	@JsonProperty("approval")
 	private ApproveStatus approval;

@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.ResponseStatus; /**
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class EmployeeNotFoundException extends RuntimeException {
+	private static final long serialVersionUID = 541600570022054022L;
+
 	public EmployeeNotFoundException(long id) {
 		super("Medarbejder med id " + id + " ikke fundet");
 	}

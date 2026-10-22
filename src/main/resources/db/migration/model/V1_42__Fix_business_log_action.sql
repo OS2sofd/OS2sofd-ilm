@@ -1,0 +1,1 @@
+UPDATE auditlog SET log_action = 'BUSINESS_CREATED' WHERE log_action = 'BUSINESS_REGISTRATION';

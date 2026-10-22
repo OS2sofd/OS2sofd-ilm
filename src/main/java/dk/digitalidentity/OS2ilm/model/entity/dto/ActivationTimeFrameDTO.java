@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ActivationTimeFrameDTO {
-	private Long id;
+	private long id;
 	private String formattedStartTime;
 	private String formattedStopTime;
 	private boolean excludeWeekends;

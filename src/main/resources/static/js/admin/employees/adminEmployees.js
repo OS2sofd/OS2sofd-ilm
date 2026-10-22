@@ -1,112 +1,48 @@
+import {initStartAndStopDatepicker, formatDate, formatDateForBackend} from '../../fragments/datePickerService.js';
+import verifyInputs from "../../fragments/verifyInputService.js";
+import initializeDataTable from "../../fragments/dataTableService.js";
+import {createArchetypeService} from "../../fragments/archetypeService.js";
+
 var token = $("meta[name='_csrf']").attr("content");
-var adminEmployeeService;
+let adminEmployeeService;
+const { closeModal, saveArchetype, updateArchetype } = createArchetypeService();
 
 $(document).ready(function() {
     adminEmployeeService = new AdminEmployeeService();
+    initAdminEmployeeButtons();
 
-    // Use a rest call instead of inline javascript for security reasons (pre-processing)
-    $.ajax({
-        method : "POST",
-        url: "/rest/admin/orgUnits/tree",
-        headers: {
-            "content-type": "application/json",
-            'X-CSRF-TOKEN': token
-        },
-        success: function(allOUs){
-            $('#ou-tree').jstree({
-                "core": {
-                    "data": allOUs,
-                    "themes": {
-                        "icons": false
-                    },
-                    "multiple": false
-                },
-                "search" : {
-                    "show_only_matches": true,
-                    "search_callback": function(str, node) {
-                        return (node.text.toUpperCase().includes(str.toUpperCase()));
-                    }
-                },
-                "plugins" : ["search", "wholerow"]
-            });
-
-            // searching in the JSTree
-            var to = false;
-            $('#ou-tree-search').keyup(function() {
-                if (to) {
-                    clearTimeout(to);
-                }
-
-                to = setTimeout(function() {
-                    var v = $('#ou-tree-search').val();
-
-                    $('#ou-tree').jstree(true).search(v);
-                }, 400);
-            });
-        }
-    });
+    // Init start date to today on load
+    adminEmployeeService.initStartDate(new Date());
+    adminEmployeeService.onSelectedBusiness();
 });
 
 function AdminEmployeeService() {
-    let archetypeName = [];
-    let archetypeToAdd = [];
-
-    this.initArchetypeTable = function () {
-        var archetypeTable = $('#archetypeTable').DataTable({
-            "destroy": true,
-            "bSort": true,
-            "paging": true,
-            "pageLength": 25,
-            "responsive": true,
-            "dom": "<'row'l<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-            "language": {
-                "search": "Søg",
-                "lengthMenu": "_MENU_ rækker per side",
-                "info": "Viser _START_ til _END_ af _TOTAL_ rækker",
-                "zeroRecords": "Ingen data...",
-                "infoEmpty": "Henter data...",
-                "infoFiltered": "(ud af _MAX_ rækker)",
-                "paginate": {
-                    "previous": "Forrige",
-                    "next": "Næste"
-                }
-            }
-        });
-        $.each($('.input-filter', archetypeTable.table().footer()), function () {
-            var column = archetypeTable.column($(this).index());
-
-            $('input, select', this).on('keyup change', function () {
-                if (column.search() !== this.value) {
-                    column.search(this.value).draw();
-                }
-            });
-        });
+    this.initStartDate = function (dateObject) {
+        let startDate = $('#startDate');
+        let today = formatDate(dateObject);
+        startDate.val(today);
     }
 
-    this.saveOUs = function (){
-        var selectedNodes = $('#ou-tree').jstree('get_selected', true);
-
-        $("#orgUnits").empty();
-
-        if (selectedNodes.length === 1) {
-            var node = selectedNodes[0];
-            $("#orgUnits").append('<option value=\"' + node.id + '\" selected="selected"> ' + node.text + "</option>");
-            $('#entity').val(node.text);
-            $('#entity').attr('data-uuid', node.id);
-        }
-
-        $('#modal-ou').modal('hide');
+    this.employeeArchetypeTable = function () {
+        initializeDataTable('#archetypeTable', token, {
+            'columnDefs': [
+                {
+                    'targets': 1,
+                    'orderable': false
+                }
+            ]
+        });
     }
 
     this.cancelButton = function () {
-        window.location.href = window.location.origin + "/employees/overview";
+        globalThis.location.href = globalThis.location.origin + "/employees/overview";
     }
 
-    this.saveCreatedEmployee = function () {
+    this.saveCreatedEmployee = async function () {
         let name = $('#createEmployeeName').val();
         let email = $('#createEmployeeMail').val();
-        let phone = $('#createEmployeePhone').val();
-        let cpr = $('#createEmployeeCpr').val();
+        let phone = $('#createEmployeePhone').val() || null;
+        let cpr = $('#createEmployeeCpr').val().replace(/-/g, '');
         let uuid = $('#createEmployeeUuid').val();
         let business = $('#businessSelect').find("option:selected").val();
         let startDate = $('#startDate').datepicker('getDate');
@@ -115,19 +51,26 @@ function AdminEmployeeService() {
         let archetype = $('#archetype').data('id');
         let ou = $('#entity').data('uuid');
         let activation = $('#activationSelect').find("option:selected").val();
+        let enableOrdering = $('#enableOrdering').is(':checked');
 
-        if (startDate && stopDate) {
-            if (startDate > stopDate) {
-                toastr.warning("Start dato må ikke være efter stop dato!");
-                return;
-            }
-        }
+        const isValid = verifyInputs([
+            {value: name, message: "Du skal angive et navn"},
+            {value: email, message: "Du skal angive en mailadresse"},
+            {value: startDate, message: "Du skal angive et start dato"},
+            {value: position, message: "Du skal angive en stilling"},
+            {value: archetype, message: "Du skal vælge en arketype"},
+            {value: ou, message: "Du skal vælge en organisation"},
+            {value: [cpr, uuid], message: "Du skal angive et CPR-nummer eller en UUID", type: 'oneOf'},
+            {value: cpr, message: "CPR-nummer skal være 10 tegn", type: 'custom', condition: () => !cpr || cpr.length === 10},
+            {value: startDate, message: "Start dato må ikke være efter stop dato", compareValue: stopDate, type: 'greaterThan'}
+        ]);
 
-        let readyToPost = adminEmployeeService.verifyInput(name, email, startDate, stopDate, position, business, cpr, uuid, archetype, ou, activation);
-
-        if (!readyToPost) {
+        if (!isValid) {
             return;
         }
+
+        const backendStartDate = formatDateForBackend(startDate);
+        const backendStopDate = formatDateForBackend(stopDate);
 
         let data = {
             "name": name,
@@ -136,115 +79,271 @@ function AdminEmployeeService() {
             "cpr": cpr,
             "uuid": uuid,
             "businessId": business,
-            "startDate": startDate,
-            "stopDate": stopDate,
+            "startDate": backendStartDate,
+            "stopDate": backendStopDate,
             "position": position,
             "archetype": archetype,
             "orgUnit": ou,
-            "activationId": activation
+            "activationId": activation,
+            "enableOrdering": enableOrdering
         }
 
-        $.ajax({
-            method : "POST",
-            url: "/rest/employee/admin/create",
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            data: JSON.stringify(data),
-            success: function(data, textStatus, jqXHR) {
-                toastr.success("Medarbejder er oprettet");
+        try {
+            const url = '/rest/employee/admin/create';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify(data)
+            });
 
-                window.location.href = window.location.origin + "/employees/overview";
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                toastr.warning("Der opstod en fejl");
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
             }
-        });
-    }
 
-    this.verifyInput = function (name, email, startDate, stopDate, position, business, cpr, uuid, archetype, ou, activation) {
-        if (business === "0") {
-            toastr.warning("Du mangler at vælge en virksomhed");
-            return false;
+            toastr.success("Medarbejder er oprettet");
+            location.href = '/employees/overview';
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message);
         }
-        if (activation === "0") {
-            toastr.warning("Du mangler at vælge en aktiveringsperiode");
-            return false;
-        }
-        if (!name) {
-            toastr.warning("Du mangler at indtaste et navn");
-            return false;
-        }
-        if (!email) {
-            toastr.warning("Du mangler at indtaste en mailadresse");
-            return false;
-        }
-        if (!startDate) {
-            toastr.warning("Du mangler at indtaste en start dato");
-            return false;
-        }
-        if (!stopDate) {
-            toastr.warning("Du mangler at indtaste en stop dato");
-            return false;
-        }
-        if (!position) {
-            toastr.warning("Du mangler at indtaste en stilling!");
-            return false;
-        }
-        if (startDate > stopDate) {
-            toastr.warning("Stop dato må ikke være før start dato");
-            return false;
-        }
-        if (!cpr && !uuid) {
-            toastr.warning("Du mangler at indtaste en CPR eller en UUID");
-            return false
-        }
-        if (archetype === null) {
-            toastr.warning("Du mangler at vælge en arketype")
-        }
-        if (ou === null) {
-            toastr.warning("Du mangler at vælge en organisation")
-        }
-        return true;
     }
 
     this.chooseArchetype = function () {
-        adminEmployeeService.initArchetypeTable();
+        adminEmployeeService.employeeArchetypeTable();
         $('#modal-archetype').modal("show");
     }
 
-    this.closeModal = function () {
-        $('input[name="archetypeChoice"]').prop('checked', false);
-        archetypeToAdd = [];
-        archetypeName = [];
-        $('#modal-archetype').modal('hide');
+    this.onSelectedBusiness = function () {
+        $('#businessSelect').on('change', async function() {
+            let businessId = $(this).val();
+            $('#archetype').val("");
+
+            if (businessId && businessId !== '0') {
+                // Fetch the business's activation timeframe
+                try {
+                    const url = `/rest/business/admin/employees/${businessId}/activation`;
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'content-type': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Der opstod en teknisk fejl");
+                    }
+
+                    const body = await response.json();
+                    if (body.activationTimeFrameId) {
+                        $('#activationSelect').val(body.activationTimeFrameId);
+                    } else {
+                        $('#activationSelect').val('0'); // Set to "Ikke tidsbegrænset"
+                    }
+
+                } catch {
+                    // Default to "Ikke tidsbegrænset" on error
+                    $('#activationSelect').val('0');
+                }
+
+                try {
+                    const url = `/rest/business/${businessId}/archetypes`;
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'content-type': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText);
+                    }
+
+                    const archetypes = await response.json();
+                    populateArchetypeTable(archetypes, true);
+                } catch (error) {
+                    populateArchetypeTable([], true);
+                    console.error(error.message);
+                    toastr.warning(error.message);
+                }
+            } else {
+                // Reset to default when no business is selected
+                $('#activationSelect').val('0');
+                populateArchetypeTable([], false);
+            }
+
+            // Default the "order Exchange account" checkbox from the selected business' settings
+            const selectedBusinessOption = this.options[this.selectedIndex];
+            const enableOrdering = selectedBusinessOption?.dataset.enableOrdering === 'true';
+            if (typeof $.fn.iCheck !== 'undefined') {
+                $('#enableOrdering').iCheck(enableOrdering ? 'check' : 'uncheck');
+            } else {
+                $('#enableOrdering').prop('checked', enableOrdering);
+            }
+
+            handleDatesAndOu(this);
+        });
+    }
+}
+
+function handleDatesAndOu(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const defaultOrgUnitUuid = selectedOption?.dataset.defaultOrgUnitUuid;
+    const defaultOrgUnitName = selectedOption?.dataset.defaultOrgUnitName;
+    const maxFutureDays = selectedOption?.dataset.maxDaysFuture;
+    const defaultEmployment = selectedOption?.dataset.defaultEmploymentDays;
+    const maxEmployment = selectedOption?.dataset.maxEmploymentDays;
+    let entity = $('#entity');
+    let stopDate = $('#stopDate');
+
+    if (defaultOrgUnitUuid && defaultOrgUnitName) {
+        entity.val(defaultOrgUnitName);
+
+        entity.data('uuid', defaultOrgUnitUuid);
+        entity.data('name', defaultOrgUnitName);
+    } else {
+        entity.val('');
+        entity.removeData('uuid');
+        entity.removeData('name');
     }
 
-    this.updateArchetype = function (obj) {
-        let selectedName = $(obj).data("name");
-        let id = $(obj).data("id");
+    if (defaultEmployment) {
+        let today = new Date();
+        let newDate = new Date(today);
+        let days = Number(defaultEmployment);
+        newDate.setDate(today.getDate() + days);
 
-        archetypeToAdd = [];
-        archetypeName = [];
-
-        if ($(obj).prop('checked')) {
-            archetypeName.push(selectedName);
-            archetypeToAdd.push(id);
-        }
+        const newStopDate = formatDate(newDate);
+        stopDate.val(newStopDate);
     }
 
-    this.saveArchetype = function () {
-        for (let i = 0; i < archetypeName.length; i++) {
-            $('#archetype').val(archetypeName[i]);
-        }
-        for (let i = 0; i < archetypeToAdd.length; i++) {
-            $('#archetype').attr('data-id', archetypeToAdd[i]);
-        }
-        $('#modal-archetype').modal("hide");
+    initStartAndStopDatepicker('startDate', 'stopDate', Number(maxFutureDays), Number(maxEmployment), Number(defaultEmployment));
+}
+
+function initAdminEmployeeButtons() {
+    $('#cancel').on('click', () => adminEmployeeService.cancelButton());
+    $('.close-modal').each(function (index, element) {
+        $(element).on('click', () => closeModal());
+    });
+    $('#save-archetype').on('click', () => saveArchetype());
+    $('#chooseArchetype').on('click', () => adminEmployeeService.chooseArchetype());
+    $('#confirm').on('click', function () {
+        adminEmployeeService.saveCreatedEmployee(this);
+    });
+
+    $(document).on('change', '.updateArchetypeButtons', function() {
+        updateArchetype(this);
+    });
+}
+
+function createArchetypeRow(archetype) {
+    const row = document.createElement('tr');
+
+    // Create name cell
+    const nameCell = document.createElement('td');
+    nameCell.dataset.value = archetype.id;
+    nameCell.textContent = archetype.name || '';
+
+    // Create action cell with radio input
+    const actionCell = document.createElement('td');
+    const radioInput = document.createElement('input');
+
+    // Set radio input properties
+    Object.assign(radioInput, {
+        type: 'radio',
+        name: 'archetypeChoice',
+        id: 'archetypeChoice' + archetype.id,
+        className: 'i-checks updateArchetypeButtons'
+    });
+
+    // Set data attributes
+    radioInput.dataset.name = archetype.name || '';
+    radioInput.dataset.id = archetype.id;
+
+    actionCell.appendChild(radioInput);
+    row.appendChild(nameCell);
+    row.appendChild(actionCell);
+
+    return row;
+}
+
+function createEmptyMessageRow(message) {
+    const row = document.createElement('tr');
+
+    // Create TWO cells instead of one with colspan to avoid DataTables issues
+    const messageCell = document.createElement('td');
+    messageCell.className = 'text-center text-muted';
+    messageCell.textContent = message;
+
+    const emptyCell = document.createElement('td');
+    emptyCell.className = 'text-center text-muted';
+    emptyCell.innerHTML = '&nbsp;'; // Non-breaking space to keep the cell structure
+
+    row.appendChild(messageCell);
+    row.appendChild(emptyCell);
+
+    return row;
+}
+
+function populateArchetypeTable(archetypes, businessSelected = true) {
+    const table = $('#archetypeTable');
+    const tableBody = document.querySelector('#archetypeTable tbody');
+
+    // Destroy DataTable if it exists
+    if ($.fn.DataTable.isDataTable('#archetypeTable')) {
+        table.DataTable().destroy();
     }
 
-    this.chooseEntity = function () {
-        $('#modal-ou').modal("show");
+    // Clear existing content
+    tableBody.innerHTML = '';
+
+    const fragment = document.createDocumentFragment();
+
+    if (!businessSelected) {
+        // No business selected state
+        const row = createEmptyMessageRow('Vælg venligst en virksomhed for at se tilgængelige arketyper');
+        fragment.appendChild(row);
+
+    } else if (archetypes && archetypes.length > 0) {
+        // Business selected with archetypes
+        archetypes.forEach(function(archetype) {
+            const row = createArchetypeRow(archetype);
+            fragment.appendChild(row);
+        });
+
+    } else {
+        // Business selected but no archetypes available
+        const row = createEmptyMessageRow('Ingen arketyper tilgængelige for denne virksomhed');
+        fragment.appendChild(row);
+    }
+
+    tableBody.appendChild(fragment);
+
+    // Only reinitialize DataTable and other plugins if we have actual archetype rows
+    if (businessSelected && archetypes && archetypes.length > 0) {
+        // Reinitialize DataTable
+        table.DataTable({
+            "searching": true,
+            "paging": false,
+            "info": false,
+            "autoWidth": false,
+            "columnDefs": [
+                { "orderable": false, "targets": 1 }
+            ]
+        });
+
+        // Reinitialize other plugins
+        if (typeof $.fn.iCheck !== 'undefined') {
+            $('.i-checks').iCheck({
+                checkboxClass: 'icheckbox_square-green',
+                radioClass: 'iradio_square-green'
+            });
+        }
     }
 }

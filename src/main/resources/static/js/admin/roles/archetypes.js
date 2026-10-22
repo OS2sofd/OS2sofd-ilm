@@ -1,15 +1,18 @@
+import initializeSwal from "../../fragments/swalService.js";
+
 var token = $("meta[name='_csrf']").attr("content");
-var archetypeService;
+let archetypeService;
 
 $(document).ready(function() {
     archetypeService = new ArchetypeService();
     archetypeService.init();
+    initArchetypeButtons()
 });
 
 function ArchetypeService () {
 
     this.init = function () {
-        var archetypeTable = $('#archetypeTable').DataTable({
+        let archetypeTable = $('#archetypeTable').DataTable({
             "serverSide": true,
             "destroy": true,
             "bSort": true,
@@ -47,15 +50,21 @@ function ArchetypeService () {
                     let isLeader = $('#isLeader').data('leader');
 
                     if (isAdmin || isLeader) {
-                        return '<a onclick="archetypeService.editArchetype('+data+')"><em class="fa fa-fw fa-pencil"></em></a>' +
-                            '<a onclick="archetypeService.deleteArchetype('+data+')"><em class="fa fa-fw fa-times"></em></a>';
+                        return '<a class="editArchetypeBtn" data-id="'+ data +'"><em class="fa fa-fw fa-pencil"></em></a>' +
+                            '<a class="deleteArchetypeBtn" data-id="'+ data +'"><em class="fa fa-fw fa-times"></em></a>';
                     }
                     return '';
                     }}
+            ],
+            'columnDefs': [
+                {
+                    'targets': 1,
+                    'orderable': false
+                }
             ]
         });
         $.each($('.input-filter', archetypeTable.table().footer()), function () {
-            var column = archetypeTable.column($(this).index());
+            const column = archetypeTable.column($(this).index());
 
             $('input, select', this).on('keyup change', function () {
                 if (column.search() !== this.value) {
@@ -66,37 +75,34 @@ function ArchetypeService () {
     }
 
     this.editArchetype = function (id) {
-        window.location.href = "/archetype/edit/" + id;
+        globalThis.location.href = "/archetype/edit/" + id;
     }
 
     this.deleteArchetype = function (id) {
-        swal({
-                title: 'Slet arketype?',
-                text: "Er du sikker?",
-                showCancelButton: true,
-                confirmButtonColor: "red",
-                confirmButtonText: "Ja",
-                cancelButtonText: "Nej",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            },
-            function(isConfirm) {
-                if(isConfirm) {
-                    $.ajax({
-                        method : "POST",
-                        url: "/rest/archetype/delete/" + id,
-                        headers: {
-                            "content-type": "application/json",
-                            'X-CSRF-TOKEN': token
-                        },
-                        success: function(data, textStatus, jqXHR){
-                            toastr.success("Arketype slettet");
-                            window.location.reload();
-                        }
-                    });
-                }
-            }
-        )
+        const params = {
+            title: 'Slet arketype?',
+            text: 'Er du sikker?',
+            id: id,
+            token: token,
+            success: 'Arketype slettet',
+            warning: 'Kunne ikke slette arketypen',
+            url: '/rest/archetype/delete/'
+        };
+        initializeSwal(params);
     }
+}
 
+function initArchetypeButtons() {
+    $(document).on('click', (e) => {
+        const target = e.target;
+
+        if (target.classList.contains('editArchetypeBtn') || target.closest('.editArchetypeBtn')) {
+            const id = target.closest('.editArchetypeBtn')?.dataset.id;
+            archetypeService.editArchetype(id);
+        }
+        else if (target.classList.contains('deleteArchetypeBtn') || target.closest('.deleteArchetypeBtn')) {
+            const id = target.closest('.deleteArchetypeBtn')?.dataset.id;
+            archetypeService.deleteArchetype(id);
+        }
+    })
 }

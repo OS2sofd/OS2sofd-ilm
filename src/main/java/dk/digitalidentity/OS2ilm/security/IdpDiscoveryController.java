@@ -11,10 +11,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RequiredArgsConstructor
 public class IdpDiscoveryController {
 	private final IdentityProviderProvider identityProviderProvider;
+	private final SecurityUtil securityUtil;
 
 	@GetMapping("/discovery")
 	public String discovery(Model model) {
 		model.addAttribute("identityProviders", identityProviderProvider.getIdentityProviders());
 		return "discovery";
+	}
+
+	@GetMapping("/landing-page")
+	public String landingPage(Model model) {
+		if (securityUtil.isAuthenticated()) {
+			return "redirect:/dashboard";
+		}
+
+		model.addAttribute("identityProviders", identityProviderProvider.getIdentityProviders());
+		return "admin/invitation/landingPage";
 	}
 }

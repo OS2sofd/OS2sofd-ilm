@@ -2,19 +2,24 @@
 <html>
 <body>
 <div th:fragment="emptyTopBar" class="row border-bottom">
-	<nav class="navbar navbar-expand-xl navbar-static-top" role="navigation" style="background-color: #293846">
-		<a class="navbar-brand" style="background: #293846; color:white;align-self: center;"><strong>OS2ilm</strong></a>
-		<div class="navbar-collapse collapse"></div>
-        <div class="navbar-collapse collapse"></div>
-        <ul class="nav navbar-top-links navbar-right" id="emptyLogout">
+    <nav class="navbar navbar-expand-xl navbar-static-top justify-content-between" role="navigation" style="background-color: #293846">
+        <a th:href="@{/dashboard}" class="navbar-brand d-flex align-items-center bg-transparent">
+            <img th:if="${@cmsMessageBundle.getText('cms.logo') != ''}"
+                 class="img-fluid"
+                 th:src="${'data:image/png;base64,' + @cmsMessageBundle.getText('cms.logo')}"
+                 style="max-height: 38px; width: auto;"
+                 alt="logo">
+            <strong class="text-white ml-2">OS2ilm</strong>
+        </a>
+        <ul class="nav navbar-top-links navbar-right ms-auto" id="emptyLogout">
             <li sec:authorize="isAuthenticated()">
                 <form th:action="@{/logout}" id="logout-form" method="post"></form>
-                <a href="#" style="color: #a7b1c2;" onclick="$('#logout-form').submit();">
-                    <i class="fa fa-sign-out"></i>&nbsp Log ud
+                <a href="#" id="logout-link" style="color: #a7b1c2;">
+                    <i class="fa fa-sign-out"></i>&nbsp;Log ud
                 </a>
             </li>
         </ul>
-	</nav>
+    </nav>
 </div>
 </body>
 </html>

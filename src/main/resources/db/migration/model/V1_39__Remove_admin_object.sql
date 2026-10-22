@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS admin_aud;
+DROP TABLE IF EXISTS admin;

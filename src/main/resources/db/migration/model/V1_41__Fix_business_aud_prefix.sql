@@ -1,0 +1,1 @@
+ALTER TABLE business_aud MODIFY COLUMN prefix VARCHAR(255);

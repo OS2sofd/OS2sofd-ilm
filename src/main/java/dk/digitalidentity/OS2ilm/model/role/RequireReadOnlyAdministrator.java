@@ -7,5 +7,6 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 @PreAuthorize("hasRole('ROLE_SYSTEM_READONLY') || hasRole('ROLE_SYSTEM_ADMINISTRATOR')")
+@RequireRoleAnnotation
 public @interface RequireReadOnlyAdministrator {
 }

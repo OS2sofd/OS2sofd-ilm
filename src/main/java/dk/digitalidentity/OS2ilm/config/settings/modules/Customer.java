@@ -9,4 +9,8 @@ public class Customer {
 	private String cvr;
 	private String name;
 	private String generalEmail;
+	private boolean requirePhone = false;
+	private boolean requireRegistrationReason = false;
+	private boolean lockNameFromMitId = false;
+	private String s3FileBasePrefix;
 }

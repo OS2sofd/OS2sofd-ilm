@@ -1,121 +1,150 @@
+import verifyInputs from "../fragments/verifyInputService.js";
+import initializeSwal from "../fragments/swalService.js";
+
 var token = $("meta[name='_csrf']").attr("content");
-var profileService;
+let profileService;
 
 $(document).ready(function() {
     profileService = new ProfileService();
     profileService.init();
+
+    initProfileButtons();
 });
 
 function ProfileService() {
     this.init = function () {
-        $('#saveEditProfile').hide();
-        $('#cancelEditProfile').hide();
+        document.getElementById('saveEditProfileBtn').style.display = 'none';
+        document.getElementById('cancelEditProfileBtn').style.display = 'none';
     }
 
-    this.enableEditProfile = function (obj) {
-        $('#nameInput').attr("readonly", false);
-        $('#phoneInput').attr("readonly", false);
-        $('#enableEditProfile').hide();
-        $('#saveEditProfile').show();
-        $('#cancelEditProfile').show();
+    this.enableEditProfile = function () {
+        document.getElementById('nameInput').readOnly = false;
+        document.getElementById('phoneInput').readOnly = false;
+        document.getElementById('enableEditProfileBtn').style.display = 'none';
+        document.getElementById('saveEditProfileBtn').style.display = '';
+        document.getElementById('cancelEditProfileBtn').style.display = '';
     }
 
-    this.disableEditProfile = function (obj) {
-        $('#nameInput').attr("readonly", true);
-        $('#phoneInput').attr("readonly", true);
-        $('#enableEditProfile').show();
-        $('#saveEditProfile').hide();
-        $('#cancelEditProfile').hide();
+    this.disableEditProfile = function () {
+        document.getElementById('nameInput').readOnly = true;
+        document.getElementById('phoneInput').readOnly = true;
+        document.getElementById('enableEditProfileBtn').style.display = '';
+        document.getElementById('saveEditProfileBtn').style.display = 'none';
+        document.getElementById('cancelEditProfileBtn').style.display = 'none';
     }
 
-    this.saveEditProfile = function (obj) {
-        let id = $(obj).data("id");
-        let name = $('#nameInput').val();
-        let phone = $('#phoneInput').val();
+    this.saveEditProfile = async function (id) {
+        const name = document.getElementById('nameInput').value;
+        const phone = document.getElementById('phoneInput').value;
 
-        if (!name) {
-            toastr.warning("Du mangler at indtaste dit navn");
+        const isValid = verifyInputs([
+            {value: name, message: "Du skal angive dit navn"}
+        ]);
+
+        if (!isValid) {
             return;
         }
-        let data = {
-            id: id,
-            name: name,
-            phoneNumber: phone
-        }
 
-        $.ajax({
-            method : "POST",
-            url: "/rest/profile/edit/profile",
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            data: JSON.stringify(data),
-            success: function(data, textStatus, jqXHR){
-                toastr.success("ændringerne er blevet gemt");
-                setTimeout(function() {
-                    window.location.reload();
-                }, 1000)
+        try {
+            const url = '/rest/profile/edit';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({
+                    id: id,
+                    name: name,
+                    phoneNumber: phone
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
             }
-        })
+
+            toastr.success("Ændringerne er blevet gemt");
+            setTimeout(function() {
+                location.reload();
+            }, 1000);
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message);
+        }
     }
 
-    this.resetPassword = function (obj) {
-        let id = $(obj).data("id");
-        if (!id) {
-            toastr.warning("Der opstod en fejl");
-            return;
-        }
-        $.ajax({
-            method : "POST",
-            url: "/rest/profile/resetPassword/" + id,
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            success: function(data, textStatus, jqXHR){
-                toastr.success("Nulstillet kodeord!");
-                setTimeout(function() {
-                    window.location.reload();
-                }, 1000)
-            }
-        })
-    }
-
-    this.requestExtension = function (obj) {
-        let id = $(obj).data("id");
-        if (!id) {
-            toastr.warning("Der opstod en fejl");
-            return;
-        }
-        swal({
-                title: 'Anmod',
-                text: "er du sikker?",
-                showCancelButton: true,
-                confirmButtonColor: "red",
-                confirmButtonText: "Ja",
-                cancelButtonText: "Nej",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            },
-            function(isConfirm) {
-                if (isConfirm) {
-                    $.ajax({
-                        method : "POST",
-                        url: "/rest/profile/requestExtension/" + id,
-                        headers: {
-                            "content-type": "application/json",
-                            'X-CSRF-TOKEN': token
-                        },
-                        success: function(data, textStatus, jqXHR){
-                            toastr.success("Anmodning om forlængelse sendt!");
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 1000)
-                        }
-                    })
+    this.resetPassword = async function (id) {
+        try {
+            const url = `/rest/profile/resetPassword/${id}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRF-TOKEN': token
                 }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
             }
-        )
+
+            toastr.success("Kodeord blev nulstillet");
+            setTimeout(function() {
+                location.reload();
+            }, 1000);
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message);
+        }
     }
+
+    this.requestExtension = function (id) {
+        const params = {
+            title: 'Anmod',
+            text: 'Er du sikker?',
+            id: id,
+            token: token,
+            success: 'Anmodning om forlængelse sendt',
+            warning: 'Kunne ikke sende anmodningen',
+            url: '/rest/profile/requestExtension/'
+        };
+        initializeSwal(params);
+    }
+}
+
+function initProfileButtons() {
+    $(document).on('click', (e) => {
+        const target = e.target;
+
+        const btnId = target.id || target.closest('[id]')?.id;
+
+        switch (btnId) {
+            case 'resetPasswordBtn': {
+                const id = target.closest('#resetPasswordBtn')?.dataset.id;
+                profileService.resetPassword(id);
+                break;
+            }
+            case 'requestExtensionBtn': {
+                const id = target.closest('#requestExtensionBtn')?.dataset.id;
+                profileService.requestExtension(id);
+                break;
+            }
+            case 'enableEditProfileBtn': {
+                profileService.enableEditProfile();
+                break;
+            }
+            case 'cancelEditProfileBtn': {
+                profileService.disableEditProfile();
+                break;
+            }
+            case 'saveEditProfileBtn': {
+                const id = target.closest('#saveEditProfileBtn')?.dataset.id;
+                profileService.saveEditProfile(id);
+                break;
+            }
+        }
+    });
 }

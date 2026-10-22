@@ -2,7 +2,8 @@
 <html>
 <head th:replace="~{fragments/header :: header (datatables = true, texteditor = true, checkbox = true)}"></head>
 <link rel="stylesheet" th:href="@{/webjars/clockpicker/0.0.7/dist/bootstrap-clockpicker.min.css}" />
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css">
+<link rel="stylesheet" th:href="@{/plugins/timepicker/jquery.timepicker.min.css}">
+<link rel="stylesheet" th:href="@{/css/ibox-footer-styling.css}">
 <body class="top-navigation">
 <div id="wrapper">
     <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'activation')}"></div>
@@ -23,18 +24,18 @@
                             <div class="form-group row">
                                 <label class="col-sm-2 col-form-label"><strong>Navn</strong></label>
                                 <div class="col-sm-10" style="margin-bottom: 10px">
-                                    <input type="text" id="createActivationName" class="form-control">
+                                    <input type="text" id="createActivationName" class="form-control" placeholder="Navn">
                                 </div>
                                 <label class="col-sm-2 col-form-label"><strong>Start tidspunkt</strong></label>
                                 <div class="col-sm-10 input-group clockpicker" style="margin-bottom: 10px">
-                                    <input type="text" id="createActivationStart" class="form-control">
+                                    <input type="text" id="createActivationStart" class="form-control" placeholder="Eks. 12:00">
                                     <span class="input-group-addon">
                                         <span class="fa fa-fw fa-clock-o"></span>
                                     </span>
                                 </div>
                                 <label class="col-sm-2 col-form-label" style="white-space: nowrap"><strong>Stop tidspunkt</strong></label>
                                 <div class="col-sm-10 input-group clockpicker" style="margin-bottom: 10px">
-                                    <input type="text" id="createActivationStop" class="form-control">
+                                    <input type="text" id="createActivationStop" class="form-control" placeholder="Eks. 18:00">
                                     <span class="input-group-addon">
                                         <span class="fa fa-fw fa-clock-o"></span>
                                     </span>
@@ -44,28 +45,26 @@
                                     <input type="checkbox" id="createWeekend" class="i-checks">
                                 </div>
                             </div>
-                            <div class="ibox">
-                                <div class="ibox-footer">
-                                    <div class="form-group row">
-                                        <div style="text-align: right" class="col-sm-12">
-                                            <button onclick="activationService.cancelButton()" id="annuller" class="btn btn-w-m btn-danger">Annuller</button> &nbsp;
-                                            <button onclick="activationService.createActivation()" id="godkend" class="btn btn-w-m btn-primary">Bekræft</button>
-                                        </div>
-                                    </div>
+                        </div>
+                        <div class="ibox-footer">
+                            <div class="form-group row">
+                                <div class="col-sm-12 text-right">
+                                    <button id="cancel" class="btn btn-w-m btn-danger">Annuller</button> &nbsp;
+                                    <button id="confirm" class="btn btn-w-m btn-primary">Bekræft</button>
                                 </div>
                             </div>
-                        </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div th:replace="~{fragments/footer :: scripts (datatables = true, texteditor = true, checkbox = true)}"></div>
-            <div th:replace="~{fragments/footer :: footer}"></div>
         </div>
+        <div th:replace="~{fragments/footer :: scripts (datatables = true, texteditor = true, checkbox = true)}"></div>
+        <div th:replace="~{fragments/footer :: footer}"></div>
     </div>
-<script type="text/javascript" th:src="@{/js/admin/ad/activations.js}"></script>
+</div>
+<script type="module" th:src="@{/js/admin/ad/activations.js}"></script>
 <script th:src="@{/webjars/clockpicker/0.0.7/dist/bootstrap-clockpicker.min.js}"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.js"></script>
+<script th:src="@{/plugins/timepicker/jquery.timepicker.min.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

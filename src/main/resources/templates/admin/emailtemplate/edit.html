@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (texteditor = true)}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'emailtemplate')}"></div>
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'emailtemplate')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="row">
+                <div class="col-md-12" style="margin-top: 20px;">
+                    <div class="ibox">
+                        <div class="ibox-title">
+                            <h5><em class="fa fa-fw fa-pencil"></em> &nbsp; Rediger mailskabelon: <span th:text="${template.templateType.title}"></span></h5>
+                        </div>
+
+                        <div class="ibox-content">
+                            <p th:text="${template.templateType.description}"></p>
+                            <p th:if="${template.templateType.digitalPost}">
+                                Denne besked kan blive sendt via Digital Post, og emnefeltet må derfor ikke indeholde kolon (:).
+                            </p>
+
+                            <div class="alert alert-danger" th:if="${error != null}" th:text="${error}"></div>
+                            <div class="alert alert-warning" th:if="${warning != null}" th:text="${warning}"></div>
+
+                            <form id="emailTemplateForm" th:action="@{/admin/emailtemplate/edit}" th:object="${form}" method="post">
+                                <input type="hidden" th:field="*{id}">
+
+                                <div class="form-group">
+                                    <label for="subject">Emne</label>
+                                    <input type="text" class="form-control" th:field="*{subject}" th:maxlength="${maxSubjectLength}" required autocomplete="off">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="content">Besked</label>
+                                    <textarea class="form-control" th:field="*{content}" autocomplete="off"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <button th:if="${isS3Enabled}" type="button" id="attachFileBtn" class="btn btn-default" data-toggle="modal" data-target="#attachmentModal">
+                                        <em class="fa fa-fw fa-paperclip"></em> Vedhæft fil
+                                    </button>
+                                    <!-- disabled buttons do not fire hover events, so the tooltip lives on a wrapper -->
+                                    <span th:unless="${isS3Enabled}" class="d-inline-block" tabindex="0" title="Der er ikke opsat S3 i jeres konfiguration endnu, så der kan ikke vedhæftes filer">
+                                        <button type="button" class="btn btn-default" style="pointer-events: none;" disabled>
+                                            <em class="fa fa-fw fa-paperclip"></em> Vedhæft fil
+                                        </button>
+                                    </span>
+                                    <span id="currentAttachment" th:if="${template.s3AttachmentKey != null}" class="m-l-sm">
+                                        <em class="fa fa-fw fa-file"></em> <span id="currentAttachmentName" th:text="${template.s3AttachmentKey.substring(template.s3AttachmentKey.lastIndexOf('-') + 1)}"></span>
+                                        <button type="button" id="removeAttachmentBtn" class="btn btn-link text-danger p-0 m-l-xs" th:data-id="${template.id}">Fjern</button>
+                                    </span>
+                                </div>
+
+                                <div class="text-right">
+                                    <small class="text-muted">Testen sender skabelonen, som den står nu, til din egen email med eksempelværdier i pladsholderne. Skabelonen gemmes ikke.</small>
+                                    <br/><br/>
+                                    <a th:href="@{/admin/emailtemplate/list}" class="btn btn-danger">Annuller</a>
+                                    <button type="button" id="testEmailBtn" class="btn btn-warning">Send test email</button>
+                                    <button type="submit" class="btn btn-primary">Gem skabelon</button>
+                                </div>
+                            </form>
+
+                            <th:block th:unless="${placeholders.isEmpty()}">
+                                <hr>
+                                <h4>Pladsholdere</h4>
+                                <p>Du kan bruge følgende pladsholdere i både emnefelt og besked. De bliver erstattet med den rigtige værdi, når beskeden sendes.</p>
+                                <table class="table">
+                                    <thead>
+                                    <tr>
+                                        <th style="width: 200px;">Pladsholder</th>
+                                        <th>Beskrivelse</th>
+                                        <th>Eksempel</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="placeholder : ${placeholders}">
+                                        <td><code th:text="${placeholder.placeholder}"></code></td>
+                                        <td th:text="${placeholder.description}"></td>
+                                        <td th:text="${placeholder.example}"></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </th:block>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="~{fragments/footer :: scripts (texteditor = true)}"></div>
+        </div>
+    </div>
+</div>
+
+<div th:if="${isS3Enabled}" class="modal fade" id="attachmentModal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Vedhæft fil</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <p>Vælg en fil, som skal sendes med beskeden. Tilladte filtyper er PDF, Word, Excel, OpenDocument, tekst og billeder (PNG/JPG).</p>
+                <input type="file" id="attachmentFile" class="form-control-file" accept=".pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.txt,.png,.jpg,.jpeg">
+                <p id="attachmentError" class="text-danger" hidden></p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Annuller</button>
+                <button type="button" id="uploadAttachmentBtn" class="btn btn-primary" disabled>Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module" th:src="@{/js/admin/emailtemplate/edit.js}"></script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

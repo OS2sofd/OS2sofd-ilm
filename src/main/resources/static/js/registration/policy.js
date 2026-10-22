@@ -1,9 +1,10 @@
 var token = $("meta[name='_csrf']").attr("content");
-var policyService;
+let policyService;
 
 $(document).ready(function () {
     policyService = new PolicyService();
     policyService.init();
+    initPolicyButtons();
 });
 
 function PolicyService() {
@@ -15,29 +16,47 @@ function PolicyService() {
         });
     }
 
-    this.approved = function (obj) {
-        let id = $(obj).attr('data-id');
-
-        if (!$('#acceptedTOS').prop("checked")) {
+    this.acceptTerms = async function (id) {
+        if (!document.getElementById('acceptedTOS').checked) {
             toastr.warning("Du skal acceptere de generelle vilkår og privatlivspolitik")
             return;
         }
-        var data = {
-            "id": id,
-            "acceptedTos": true
-        }
 
-        $.ajax({
-            method : "POST",
-            url: "/rest/register/policy",
-            headers: {
-                "content-type": "application/json",
-                'X-CSRF-TOKEN': token
-            },
-            data: JSON.stringify(data),
-            success: function(data, textStatus, jqXHR){
-                window.location.href = window.location.origin + "/employee/my/account/" + id;
+        try {
+            const url = '/rest/register/tos';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
             }
-        })
+
+            location.href = '/employee/my/account/' + id;
+        } catch (error) {
+            console.error(error.message);
+            toastr.warning(error.message);
+        }
     }
+}
+
+function initPolicyButtons() {
+    $(document).on('click', (e) => {
+        const target = e.target;
+
+        const btnId = target.id || target.closest('[id]')?.id;
+
+        switch (btnId) {
+            case 'acceptTerms': {
+                const id = target.closest('#acceptTerms')?.dataset.id;
+                policyService.acceptTerms(id);
+                break;
+            }
+        }
+    });
 }

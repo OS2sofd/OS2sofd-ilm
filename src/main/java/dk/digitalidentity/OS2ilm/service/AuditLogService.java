@@ -1,8 +1,5 @@
 package dk.digitalidentity.OS2ilm.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dk.digitalidentity.OS2ilm.model.dao.AuditLogDao;
 import dk.digitalidentity.OS2ilm.model.entity.AuditLog;
 import dk.digitalidentity.OS2ilm.model.entity.AuditLogDetail;
@@ -14,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -74,7 +73,7 @@ public class AuditLogService {
                     rowBuilder.append("\"").append(auditlog.getTts() == null ? "" : auditlog.getTts()).append("\";");
                     rowBuilder.append("\"").append(auditlog.getIpAddress() == null ? "" : auditlog.getIpAddress()).append("\";");
                     rowBuilder.append("\"").append(auditlog.getCorrelationId() == null ? "" : auditlog.getCorrelationId()).append("\";");
-                    rowBuilder.append("\"").append(auditlog.getLogAction() == null ? "" : auditlog.getLogAction().getMessage()).append("\";");
+                    rowBuilder.append("\"").append(auditlog.getLogAction() == null ? "" : auditlog.getLogAction().getType().getTranslation()).append("\";");
                     rowBuilder.append("\"").append(auditlog.getMessage() == null ? "" : auditlog.getMessage()).append("\";");
                     rowBuilder.append("\"").append(auditlog.getPerformerName() == null ? "" : auditlog.getPerformerName()).append("\";");
                     rowBuilder.append("\"").append(auditlog.getTargetName() == null ? "" : auditlog.getTargetName()).append("\";");
@@ -130,7 +129,7 @@ public class AuditLogService {
                 detail.setDetailContent(objectToJson(target));
                 detail.setDetailType(DetailType.JSON);
                 auditLog.setDetails(detail);
-            } catch(JsonProcessingException e) {
+            } catch(JacksonException e) {
                 var errorDetail = new AuditLogDetail();
                 errorDetail.setDetailType(DetailType.JSON);
                 errorDetail.setDetailContent("{\"error\":\"Failed to convert data to json due to: " + e.getMessage() + "\"}");
@@ -220,9 +219,8 @@ public class AuditLogService {
         return hexString.toString();
     }
 
-    private String objectToJson(Object object) throws JsonProcessingException {
+    private String objectToJson(Object object) throws JacksonException {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
     }

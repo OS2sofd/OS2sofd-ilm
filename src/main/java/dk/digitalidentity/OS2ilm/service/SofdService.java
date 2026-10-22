@@ -1,19 +1,18 @@
 package dk.digitalidentity.OS2ilm.service;
 
-import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
-import dk.digitalidentity.OS2ilm.controller.api.model.SimpleOrgUnit;
-import dk.digitalidentity.OS2ilm.model.entity.AdUser;
-import dk.digitalidentity.OS2ilm.model.entity.Employee;
-import dk.digitalidentity.OS2ilm.model.entity.OrgUnit;
-import dk.digitalidentity.OS2ilm.model.exception.SofdIntegrationException;
-import dk.digitalidentity.OS2ilm.model.entity.enums.AffiliationType;
-import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdAffiliation;
-import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdPerson;
-import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdUser;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import dk.digitalidentity.OS2ilm.model.entity.dto.CreateAccountOrderDTO;
+import dk.digitalidentity.OS2ilm.model.entity.dto.NamesDTO;
+import dk.digitalidentity.OS2ilm.model.entity.enums.AccountOrderResult;
+import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdPhone;
+import dk.digitalidentity.OS2ilm.util.NameUtils;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -23,43 +22,50 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
+import dk.digitalidentity.OS2ilm.controller.api.model.SimpleOrgUnit;
+import dk.digitalidentity.OS2ilm.model.entity.AdUser;
+import dk.digitalidentity.OS2ilm.model.entity.Employee;
+import dk.digitalidentity.OS2ilm.model.entity.OrgUnit;
+import dk.digitalidentity.OS2ilm.model.entity.enums.AffiliationType;
+import dk.digitalidentity.OS2ilm.model.entity.enums.ExchangeAccountStatus;
+import dk.digitalidentity.OS2ilm.model.entity.enums.SofdSyncStatus;
+import dk.digitalidentity.OS2ilm.model.exception.SofdIntegrationException;
+import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdAffiliation;
+import dk.digitalidentity.OS2ilm.service.dto.sofd.SofdPerson;
+import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import static dk.digitalidentity.OS2ilm.util.QueueUtils.getSofdHeaders;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SofdService {
-	private static final String APPLICATION_JSON = "application/json";
 	private static final String SOFD_MASTER_IDENTIFIER="OS2ILM";
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 	private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
+	private static final String USER_TYPE = "EXCHANGE";
 
 	private final OrgUnitService orgUnitService;
+	private final AdUserService adUserService;
+	private final EmployeeService employeeService;
 	private final IlmConfiguration configuration;
 	private final RestTemplate restTemplate;
-	private final EmployeeService employeeService;
-	private final SofdQueueService sofdQueueService;
 
 	public record OrgUnitResult(Set<SimpleOrgUnit> orgUnits, long page) {}
-	@Transactional(rollbackOn = Exception.class)
+	@Transactional(rollbackFor = Exception.class)
 	public void syncData() {
 		try {
 			OrgUnitResult data = fetchDataFromSofd();
 
 			List<String> existingUuids = orgUnitService.findAllUuids();
 			List<String> newUuids = data.orgUnits().stream()
+					.filter(ou -> ou.getDeleted() != null && !ou.getDeleted())
 					.map(this::persist)
 					.filter(Objects::nonNull)
 					.map(OrgUnit::getUuid)
@@ -112,44 +118,8 @@ public class SofdService {
 		orgUnitService.save(ou);
 	}
 
-	private HttpHeaders getHeaders() {
-		HttpHeaders headers = new HttpHeaders();
-		headers.add("ApiKey", configuration.getSofd().getApiKey());
-		headers.add("Content-Type", APPLICATION_JSON);
-		headers.add("Accept", APPLICATION_JSON);
-
-		return headers;
-	}
-
-	public record CreateAffiliationApiDTO(String cpr, String firstname, String surname, String orgUnitUuid, Date startDate, Date stopDate, String positionName, AffiliationType affiliationType) {}
-	public boolean createAffiliationInSofd(CreateAffiliationApiDTO dto) {
-		log.debug("creating affiliation in Sofd");
-
-		HttpHeaders headers = getHeaders();
-
-		HttpEntity<CreateAffiliationApiDTO> request = new HttpEntity<>(dto, headers);
-
-		try {
-			ResponseEntity<String> response = restTemplate.exchange(configuration.getSofd().getUrl() + "/api/createAffiliation", HttpMethod.POST, request, String.class);
-			if (response.getStatusCode() == HttpStatus.OK) {
-				return true;
-			}
-		} catch (HttpClientErrorException e) {
-			if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-				log.warn(e.getResponseBodyAsString());
-			}
-		}  catch (HttpServerErrorException e) {
-			if (e.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
-				log.warn("Internal Server Error; Cpr number most likely exists already: {}", e.getResponseBodyAsString());
-			}
-		} catch (Exception e) {
-			log.error("Unexpected error occurred while creating affiliation in Sofd: {}", e.getMessage(), e);
-		}
-		return false;
-	}
-
 	private OrgUnitResult fetchDataFromSofd() throws Exception {
-		HttpHeaders headers = getHeaders();
+		HttpHeaders headers = getSofdHeaders(configuration.getSofd().getApiKey());
 
 		HttpEntity<List<OrgUnitResult>> request = new HttpEntity<>(headers);
 
@@ -166,9 +136,70 @@ public class SofdService {
 		return response.getBody();
 	}
 
+	public AccountOrderResult createExchangeAccount(String personUuid, String userId, String affiliationUuid) {
+		if (!StringUtils.hasText(personUuid) || !StringUtils.hasText(userId) || !StringUtils.hasText(affiliationUuid)) {
+			log.error("Cannot order Exchange account, missing required field(s): personUuid={}, userId={}, affiliationUuid={}",
+					personUuid, userId, affiliationUuid);
+			return AccountOrderResult.PERMANENT_FAILURE;
+		}
+
+		CreateAccountOrderDTO order = CreateAccountOrderDTO.builder()
+				.personUuid(personUuid)
+				.userType(USER_TYPE)
+				.userId(userId)
+				.affiliationUuid(affiliationUuid)
+				.build();
+
+		HttpHeaders headers = getSofdHeaders(configuration.getSofd().getApiKey());
+		HttpEntity<CreateAccountOrderDTO> request = new HttpEntity<>(order, headers);
+		String url = configuration.getSofd().getUrl() + "/api/account";
+
+		try {
+			restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+			log.info("Successfully ordered an Exchange Account for userId={}", userId);
+			return AccountOrderResult.ORDERED;
+		}
+		catch (HttpClientErrorException.NotFound ex) {
+			log.error("The person or userType does not exist in SOFD: personUuid={}, userType={}", personUuid, USER_TYPE);
+			return AccountOrderResult.PERMANENT_FAILURE;
+		}
+		catch (HttpClientErrorException.BadRequest ex) {
+			log.error("The chosen userId is not valid for ordering an Exchange Account: userId={}", userId);
+			return AccountOrderResult.PERMANENT_FAILURE;
+		}
+		catch (RestClientException e) {
+			// SOFD only returns 404/400/200 on this endpoint, so anything reaching here is a
+			// 5xx or connectivity/timeout failure - safe to retry
+			log.warn("Transient error ordering Exchange account for userId={}: {}", userId, e.getMessage());
+			return AccountOrderResult.TRANSIENT_FAILURE;
+		}
+	}
+
+	@Transactional
+	public void applyAccountOrderResult(Employee employee, AdUser adUser, AccountOrderResult result) {
+		switch (result) {
+			case ORDERED -> {
+				adUser.setSofdSyncStatus(SofdSyncStatus.EXCHANGE_REQUESTED);
+				adUserService.save(adUser);
+				employee.setExchangeAccountStatus(ExchangeAccountStatus.HAS_ACCOUNT);
+				employeeService.save(employee);
+			}
+			case PERMANENT_FAILURE -> {
+				adUser.setSofdSyncStatus(SofdSyncStatus.EXCHANGE_FAILED);
+				adUserService.save(adUser);
+				employee.setExchangeAccountStatus(ExchangeAccountStatus.ORDER_FAILED);
+				employeeService.save(employee);
+			}
+			case TRANSIENT_FAILURE -> { /* no state change — will be retried */ }
+		}
+	}
+
 	// Format local date to yyyy-MM-dd
 	public static String formatDate(LocalDate date) {
-		return date.format(DATE_FORMATTER);
+		if (date != null) {
+			return date.format(DATE_FORMATTER);
+		}
+		return null;
 	}
 
 	// Format local datetime to yyyy-MM-dd HH:mm:ss
@@ -176,76 +207,59 @@ public class SofdService {
 		return dateTime.format(DATETIME_FORMATTER);
 	}
 
-	public SofdPerson createSofdPerson(Employee consultant) {
-		// We should only create people in Sofd that have a Cpr number
-		if (!StringUtils.hasText(consultant.getCpr())) {
+	public SofdPerson createSofdPerson(Employee employee) {
+		if (!StringUtils.hasText(employee.getCpr())) {
 			throw new IllegalArgumentException("Cpr must be filled out");
 		}
 
 		LocalDateTime lastChanged = LocalDateTime.now();
-		Names extractedName = extractNames(consultant);
+		NamesDTO extractedName = NameUtils.splitName(employee);
 
-		HashSet<SofdUser> users = new HashSet<>();
-		AdUser user = consultant.getUser();
-		if (user != null) {
-			users.add(new SofdUser(
-					SOFD_MASTER_IDENTIFIER,
-					user.getExtUuid(),
-					user.getExtUuid(),
-					user.getName(),
-					"ACTIVE_DIRECTORY"));
-		}
+		return getSofdPerson(employee, extractedName, lastChanged);
+	}
 
+	private SofdPerson getSofdPerson(Employee employee, NamesDTO extractedName, LocalDateTime lastChanged) {
 		HashSet<SofdAffiliation> affiliations = new HashSet<>();
-		if (consultant.getOrgUnit() != null) {
-			affiliations.add(new SofdAffiliation(
-					SOFD_MASTER_IDENTIFIER,
-					consultant.getExtUuid(),
-					consultant.getExtUuid(),
-					formatDate(consultant.getStartDate()),
-					formatDate(consultant.getStopDate()),
-					consultant.getPositionName(),
-					AffiliationType.EXTERNAL.name(),
-					consultant.getOrgUnit().getUuid()
-			));
+		if (employee.getOrgUnit() != null && employee.getBusiness() != null) {
+			affiliations.add(
+					SofdAffiliation.builder()
+							.master(SOFD_MASTER_IDENTIFIER)
+							.masterId(employee.getExtUuid())
+							.uuid(employee.getExtAffiliationUuid())
+							.employeeId(employee.getExtAffiliationUuid())
+							.startDate(formatDate(employee.getStartDate()))
+							.stopDate(formatDate(employee.getStopDate()))
+							.positionName(employee.getPositionName())
+							.positionShort(employee.getPositionName())
+							.affiliationType(AffiliationType.EXTERNAL.name())
+							.orgUnitUuid(employee.getOrgUnit().getUuid())
+							.inheritPrivileges(employee.getBusiness().isInheritPrivileges())
+							.build()
+			);
 		}
 
-		return new SofdPerson(
-				consultant.getCpr(),
-				SOFD_MASTER_IDENTIFIER,
-				extractedName.firstname(),
-				extractedName.surname(),
-				consultant.getExtUuid(),
-				formatDateTime(lastChanged),
-				consultant.getName(),
-				users,
-				affiliations
-		);
-	}
-
-	private static @NotNull Names extractNames(Employee consultant) {
-		String[] parts = {};
-		String firstname = "";
-		String surname = "";
-
-		String name = consultant.getName();
-		if (name != null && !name.trim().isEmpty()) {
-			parts = name.trim().split("\\s+");
-			if (parts.length > 0) {
-				surname = parts[parts.length - 1];
-				if (parts.length > 1) {
-					firstname = String.join(" ", Arrays.copyOfRange(parts, 0, parts.length - 1));
-				}
-			}
+		HashSet<SofdPhone> phones = new HashSet<>();
+		if (StringUtils.hasText(employee.getPhone())) {
+			phones.add(
+					SofdPhone.builder()
+							.master(SOFD_MASTER_IDENTIFIER)
+							.masterId(employee.getExtUuid())
+							.phoneNumber(employee.getPhone())
+							.phoneType("MOBILE")
+							.build()
+			);
 		}
-		return new Names(firstname, surname);
-	}
 
-	private record Names(String firstname, String surname) {
-	}
-
-	public void sofdCreateAndUpdateHelper(Employee consultant) {
-		SofdPerson sofdPerson = createSofdPerson(consultant);
-		sofdQueueService.addMessageToQueue(new SofdQueueService.SofdMessageRequest(sofdPerson));
+		return SofdPerson.builder()
+				.cpr(employee.getCpr())
+				.master(SOFD_MASTER_IDENTIFIER)
+				.firstname(extractedName.firstName())
+				.surname(extractedName.lastName())
+				.uuid(employee.getExtUuid())
+				.lastChanged(formatDateTime(lastChanged))
+				.chosenName(employee.getName())
+				.affiliations(affiliations)
+				.phones(phones)
+				.build();
 	}
 }

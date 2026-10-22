@@ -1,0 +1,2 @@
+ALTER TABLE business
+ADD COLUMN enable_leaders BOOLEAN DEFAULT FALSE;

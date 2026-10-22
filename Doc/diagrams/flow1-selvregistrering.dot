@@ -1,0 +1,14 @@
+digraph flow1 {
+    graph [rankdir=LR, bgcolor="transparent", nodesep=0.5, ranksep=0.45, pad=0.1];
+    node  [shape=box, style="rounded,filled", fillcolor="#eceef4", color="#525e7e", penwidth=1.2,
+           fontname="DejaVu Sans", fontsize=11, fontcolor="#1c1f26", margin="0.16,0.1"];
+    edge  [color="#525e7e", penwidth=1.2, arrowsize=0.8, fontname="DejaVu Sans", fontsize=9, fontcolor="#5b6270"];
+
+    A [label="Medarbejderen\nregistrerer sig med\nMitID og accepterer\nbetingelserne"];
+    B [label="Lederen\ngodkender"];
+    C [label="Administratoren\ngodkender og vælger\nenhed, Arketype og\nstart- og slutdato"];
+    D [label="Fælles\nintegrationsflow\nSOFD, AD og\nRollekatalog", fillcolor="#373d54", color="#373d54", fontcolor="white"];
+
+    A -> B -> C -> D;
+    A -> C [style=dashed, constraint=false, label="administratoren kan\ngodkende uden om lederen"];
+}

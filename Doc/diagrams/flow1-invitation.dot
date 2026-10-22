@@ -1,0 +1,13 @@
+digraph invitation {
+    graph [rankdir=LR, bgcolor="transparent", nodesep=0.5, ranksep=0.45, pad=0.1];
+    node  [shape=box, style="rounded,filled", fillcolor="#eceef4", color="#525e7e", penwidth=1.2,
+           fontname="DejaVu Sans", fontsize=11, fontcolor="#1c1f26", margin="0.16,0.1"];
+    edge  [color="#525e7e", penwidth=1.2, arrowsize=0.8, fontname="DejaVu Sans", fontsize=9, fontcolor="#5b6270"];
+
+    A [label="Administratoren\ninviterer medarbejderen\nmed navn og e-mail"];
+    B [label="Medarbejderen\nfølger linket i\ne-mailen"];
+    C [label="Landingsside med\nkommunens vejledning\nog login med MitID"];
+    D [label="Flow 1 fortsætter:\nregistrering og\ngodkendelser", fillcolor="#373d54", color="#373d54", fontcolor="white"];
+
+    A -> B -> C -> D;
+}

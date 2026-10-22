@@ -16,7 +16,10 @@ public class ScheduledConfiguration {
 	public String updateActiveDirectoryCron;
 
 	public boolean accountActiveDirectoryEnabled = true;
-	public String accountActiveDirectoryCron;
+	public String morningHighFrequencyAccountMaintenanceCron;
+	public String afternoonHighFrequencyAccountMaintenanceCron;
+	public String weekLowFrequencyAccountMaintenanceCron;
+	public String weekendLowFrequencyAccountMaintenanceCron;
 
 	public String sofdSyncCron;
 
@@ -29,4 +32,7 @@ public class ScheduledConfiguration {
 	public boolean cleanUpOldUsersEnabled = true;
 	// Representing the number of months before we start deleting employees
 	public int cleanUpOldUsersInterval = 13;
+
+	public String sendAwaitingApprovalEmailNotificationsCron;
+	public boolean sendAwaitingApprovalEmailNotificationsEnabled = true;
 }

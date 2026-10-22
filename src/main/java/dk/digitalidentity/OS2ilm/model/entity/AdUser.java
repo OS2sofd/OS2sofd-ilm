@@ -1,10 +1,12 @@
 package dk.digitalidentity.OS2ilm.model.entity;
 
 import dk.digitalidentity.OS2ilm.model.entity.enums.AccountStatus;
+import dk.digitalidentity.OS2ilm.model.entity.enums.SofdSyncStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,12 +15,17 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.time.LocalDate;
 
+@Audited
 @Getter
 @Setter
 @Entity(name = "ad_user")
+@SQLRestriction("deleted = false")
 public class AdUser {
 
 	@Id
@@ -36,14 +43,6 @@ public class AdUser {
 	@Column(nullable = false)
 	private LocalDate stopDate;
 
-//	@ManyToMany(fetch = FetchType.EAGER)
-//	@JoinTable(
-//			name = "ad_user_ad_group_mapping",
-//			joinColumns = @JoinColumn(name = "ad_user_id"),
-//			inverseJoinColumns = @JoinColumn(name = "ad_group_id")
-//	)
-//	private Set<AdGroup> adGroups = new HashSet<>();
-
 	@OneToOne(mappedBy = "user")
 	private Employee employee;
 
@@ -51,6 +50,7 @@ public class AdUser {
 	@Column
 	public AccountStatus status;
 
+	@NotAudited
 	@ManyToOne()
 	@JoinColumn(name = "activation_time_frame_id")
 	private ActivationTimeFrame activationTimeFrame;
@@ -61,25 +61,24 @@ public class AdUser {
 	@Column
 	private String extUuid;
 
-//	public void addAdGroup(AdGroup adGroup) {
-//		System.out.println("Adding ad group: " + adGroup.getName() + " to user: " + name);
-//		adGroups.add(adGroup);
-//	}
-//
-//	public void removeAdGroup(AdGroup adGroup) {
-//		adGroups.remove(adGroup);
-//	}
-//
-//	public String getAdUserNames() {
-//		StringBuilder sb = new StringBuilder();
-//		for (AdGroup adGroup : adGroups) {
-//			if (!sb.isEmpty()) {
-//				sb.append(adGroup.getName()).append(",");
-//			} else {
-//				sb.append(adGroup.getName());
-//			}
-//		}
-//		return sb.toString();
-//	}
+	@Column
+	private String cpr;
 
+	@Column
+	private boolean initialPasswordSet;
+
+	@NotAudited
+	@Enumerated(EnumType.STRING)
+	@Column(name = "sofd_sync_status")
+	private SofdSyncStatus sofdSyncStatus;
+
+	@Column
+	private boolean deleted = false;
+
+	@Column
+	private String phoneNumber;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "business_id")
+	private Business business;
 }

@@ -1,0 +1,22 @@
+.loginColumns {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 100px 20px 20px 20px;
+}
+
+.loginColumns .login-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.loginColumns .login-btn .logo_uni h2 {
+    margin: 0;
+}
+
+#landingPageLogo {
+    max-width: 300px;
+    max-height: 200px;
+}

@@ -9,4 +9,5 @@ public class SimpleOrgUnit {
 	private String name;
 	private String uuid;
 	private String parentUuid;
+	private Boolean deleted;
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head th:replace="~{fragments/header :: header}"></head>
+<link rel="stylesheet" th:href="@{/css/ibox-footer-styling.css}">
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'invitation')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'invitation')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="ibox">
+                <div class="ibox-title">
+                    <h5><em class="fa fa-fw fa-envelope"></em> &nbsp; Invitationsform</h5>
+                </div>
+                <div class="ibox-content">
+                    <p class="text-muted">
+			Her kan du indtaste et navn og mailadresse på en person. De vil modtage en mail (som kan justeres under fanebladet CMS) med et link til ILM hvor de vil blive bedt om at registrere sig selv. 
+                    </p>
+
+                    <div class="form-group">
+                        <label for="nameInput"><strong>Navn</strong></label>
+                        <div class="input-group w-25">
+                            <span class="input-group-addon"><em class="fa fa-user"></em></span>
+                            <input id="nameInput" type="text" class="form-control"
+                                   placeholder="Navn">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mailInput"><strong>Mailadresse</strong></label>
+                        <div class="input-group w-25">
+                            <span class="input-group-addon"><em class="fa fa-envelope-o"></em></span>
+                            <input id="mailInput" type="email" class="form-control"
+                                   placeholder="navn@example.com">
+                        </div>
+                    </div>
+                </div>
+                <div class="ibox-footer">
+                    <div class="form-group m-b-none">
+                        <button id="sendButton" type="button" class="btn btn-primary">
+                            <em class="fa fa-paper-plane"></em> &nbsp; Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/footer :: scripts}"></div>
+<div th:replace="~{fragments/footer :: footer}"></div>
+<script type="module" th:src="@{/js/admin/invitation/invitationForm.js}"></script>
+</body>
+</html>

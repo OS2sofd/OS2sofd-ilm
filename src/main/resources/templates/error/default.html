@@ -22,18 +22,18 @@
 									Hvis du oplever denne fejl i forbindelse med login, og det ikke hjælper at starte forfra,
 									skal du kontakte din it-afdeling og melde fejlen. Nedenunder finder du nogle links til brug i stedet for.
 								</p>
-								<a th:href="@{/templates/employee/my/account}">Hjemmeside</a>
+								<a th:href="@{/discovery}">Hjemmeside</a>
 							</th:block>
 							<th:block th:if="${status != '404'}">
 								<p>
 									Der er opstået en teknisk fejl. Hvis du oplever denne fejl i forbindelse med login, og det ikke hjælper at starte forfra,
 									skal du kontakte din it-afdeling og melde fejlen. Nedenfor er en række links du kan vælge at bruge i stedet.
 								</p>
-								<a th:href="@{/templates/employee/my/account}">Hjemmeside</a>
+								<a th:href="@{/discovery}">Hjemmeside</a>
 							</th:block>
 
 							<small th:if="${timeStamp != null}">
-								<p id="location" style="margin-bottom: 2px;"></p>
+								<p th:if="${location != null}" th:text="'Tilgik: ' + ${location}" style="margin-bottom: 2px;"></p>
 								<p th:text="'Tidspunkt: ' + ${timeStamp}"></p>
 							</small>
 							<th:block th:if="${exception != null}">
@@ -48,7 +48,7 @@
 		<div th:replace="~{fragments/footer :: footer}"></div>
 	</div>
 </div>
-<script type="text/javascript" th:src="@{/js/error/error.js}"></script>
+<script type="module" th:src="@{/js/error/error.js}"></script>
 <div th:replace="~{fragments/footer :: scripts}"></div>
 </body>
 </html>

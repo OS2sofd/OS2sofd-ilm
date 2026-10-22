@@ -32,10 +32,29 @@ button:not(.close) {
     width: auto !important;
 }
 
-.cancel {
+.cancel, .sweet-alert button.confirm {
     width: auto !important;
 }
 
 #top-menu > li.active a {
     color: #19aa8d !important;
+}
+
+.navbar-version {
+    cursor: default;
+    color: #999c9e;
+}
+
+.navbar-version-outdated {
+    cursor: default;
+    color: #f8ac59;
+}
+
+#ilmLogo {
+    max-width: 300px;
+    max-height: 38px;
+}
+
+#toggleColumnOptionsButton {
+    width: 60px !important;
 }

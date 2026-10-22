@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class AdGroupNotFoundException extends RuntimeException {
+	private static final long serialVersionUID = -3781611463175855492L;
+
 	public AdGroupNotFoundException(long id) {
 		super("AdGroup with id " + id + " not found");
 	}

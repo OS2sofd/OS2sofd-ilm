@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head th:replace="~{fragments/header :: header (datatables = true, checkbox = true)}"></head>
+<link rel="stylesheet" th:href="@{/css/ibox-footer-styling.css}">
 <body class="top-navigation">
 <div id="wrapper">
     <div th:replace="~{fragments/sidebar :: sidemenu (admin = true, page = 'archetype')}"></div>
@@ -23,6 +24,47 @@
                                     <input id="editArchetypeName" class="form-control" th:value="${archetype?.name}">
                                 </div>
                             </div>
+                            <h4>Active directory</h4>
+                            <hr>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0;">Tilknyttede grupper</h4>
+                            </div>
+                            <div class="form-group row">
+                                <div class="table-responsive">
+                                    <table id="groupTable" class="table table-striped table-bordered table-hover">
+                                        <thead>
+                                        <tr>
+                                            <th>Navn</th>
+                                            <th>Handlinger</th>
+                                        </tr>
+                                        </thead>
+
+                                        <tfoot style="display: table-row-group">
+                                        <tr>
+                                            <td class="input-filter">
+                                                <input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" />
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                        </tfoot>
+
+                                        <tbody>
+                                        <tr th:each="group : ${groups}">
+                                            <td th:text="${group?.name}" th:value="${group.id}"></td>
+                                            <td>
+                                                <input type="checkbox"
+                                                       th:id="${'groupChoice' + group.id}"
+                                                       class="i-checks modalChecks updateGroupBtn"
+                                                       th:data-id="${group.id}"
+                                                       th:checked="${archetype.adGroups.contains(group)}">
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <h4>Rollekatalog</h4>
+                            <hr>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <h4 style="margin: 0;">Tilknyttede roller</h4>
                             </div>
@@ -53,10 +95,9 @@
                                             <td>
                                                 <input type="checkbox"
                                                        th:id="${'roleChoice' + role.id}"
-                                                       class="i-checks modalChecks"
+                                                       class="i-checks modalChecks updateRoleBtn"
                                                        th:data-id="${role.id}"
-                                                       th:checked="${archetype.userRoles.contains(role)}"
-                                                       onchange="editArchetypeService.updateRole(this)">
+                                                       th:checked="${archetype.userRoles.contains(role)}">
                                             </td>
                                         </tr>
                                         </tbody>
@@ -64,14 +105,15 @@
                                 </div>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0;">Tilknyttede grupper</h4>
+                                <h4 style="margin: 0;">Tilknyttede rollebuketter</h4>
                             </div>
                             <div class="form-group row">
                                 <div class="table-responsive">
-                                    <table id="groupTable" class="table table-striped table-bordered table-hover">
+                                    <table id="roleGroupTable" class="table table-striped table-bordered table-hover">
                                         <thead>
                                         <tr>
                                             <th>Navn</th>
+                                            <th>Beskrivelse</th>
                                             <th>Handlinger</th>
                                         </tr>
                                         </thead>
@@ -86,25 +128,27 @@
                                         </tfoot>
 
                                         <tbody>
-                                        <tr th:each="group : ${groups}">
-                                            <td th:text="${group.name}" th:value="${group.id}"></td>
+                                        <tr th:each="rg : ${roleGroups}">
+                                            <td th:text="${rg?.name}" th:value="${rg.id}"></td>
+                                            <td th:text="${rg?.description}" th:value="${rg.id}"></td>
                                             <td>
                                                 <input type="checkbox"
-                                                       th:id="${'groupChoice' + group.id}"
-                                                       class="i-checks modalChecks"
-                                                       th:data-id="${group.id}"
-                                                       th:checked="${archetype.adGroups.contains(group)}"
-                                                       onchange="editArchetypeService.updateGroup(this)">
+                                                       th:id="${'roleGroupChoice' + rg.id}"
+                                                       class="i-checks modalChecks updateRoleGroupBtn"
+                                                       th:data-id="${rg.id}"
+                                                       th:checked="${archetype.roleGroups.contains(rg)}">
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                            <div class="ibox-footer" style="padding-right: 0 !important;">
-                                <div class="text-right">
-                                    <button id="annuller" onclick="editArchetypeService.cancelButton()" class="btn btn-w-m btn-danger">Annuller</button>
-                                    <button th:data-id="${archetype.id}" onclick="editArchetypeService.saveEditedArchetype(this)" id="bekræft" class="btn btn-w-m btn-primary">Gem</button>
+                        </div>
+                        <div class="ibox-footer">
+                            <div class="form-group row">
+                                <div class="col-sm-12 text-right">
+                                    <button id="cancel" class="btn btn-w-m btn-danger">Annuller</button>
+                                    <button id="confirm" th:data-id="${archetype.id}" class="btn btn-w-m btn-primary">Gem</button>
                                 </div>
                             </div>
                         </div>
@@ -116,7 +160,7 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{/js/admin/roles/editArchetype.js}"></script>
+<script type="module" th:src="@{/js/admin/roles/editArchetype.js}"></script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

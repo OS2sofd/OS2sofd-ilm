@@ -1,9 +1,9 @@
 package dk.digitalidentity.OS2ilm.service;
 
-import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
-import dk.digitalidentity.OS2ilm.controller.api.model.GetBusinessResult;
-import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
+import static dk.digitalidentity.OS2ilm.util.NullSafe.nullSafe;
+
+import java.util.Optional;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -18,17 +18,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Optional;
-
-import static dk.digitalidentity.OS2ilm.util.NullSafe.nullSafe;
+import dk.digitalidentity.OS2ilm.config.settings.IlmConfiguration;
+import dk.digitalidentity.OS2ilm.controller.api.model.GetBusinessResult;
+import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 @EnableCaching
-@SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
 public class CvrService {
+
 	@Autowired
 	private IlmConfiguration configuration;
+
+	@Autowired
+	private BusinessService businessService;
 
 
 	@CacheEvict(value = "getSearchResultByCvr", allEntries = true)
@@ -37,7 +41,7 @@ public class CvrService {
 	}
 
 	@Builder
-	public record CvrSearchResultDTO(String cvr, String name) {}
+	public record CvrSearchResultDTO(String cvr, String name, boolean leaderEnabled) {}
 	@Cacheable(value = "getSearchResultByCvr")
 	public Optional<CvrSearchResultDTO> getSearchResultByCvr(final String cvr) {
 		if (!configuration.getIntegrations().getCvr().isEnabled()
@@ -50,6 +54,7 @@ public class CvrService {
 				.map(r -> CvrSearchResultDTO.builder()
 						.cvr(nullSafe(() -> r.getVirksomhed().getCvr()))
 						.name(nullSafe(() -> r.getVirksomhedsnavn().getName()))
+						.leaderEnabled(businessService.checkLeaderEnabled(r.getVirksomhed().getCvr()))
 						.build());
 	}
 

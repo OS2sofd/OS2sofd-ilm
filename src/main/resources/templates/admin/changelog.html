@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+<div id="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidemenu (page = 'changelog')}"></div>
+
+    <div id="page-wrapper" class="gray-bg">
+        <div th:replace="~{fragments/navbar :: topbar (page = 'changelog')}"></div>
+        <div class="wrapper wrapper-content">
+            <div class="ibox">
+                <div class="ibox-title">
+                    <h5><em class="fa fa-fw fa-list-alt"></em> &nbsp; Ændringslog</h5>
+                </div>
+                <div class="ibox-content changelog" th:utext="${changelogHtml}"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/footer :: scripts}"></div>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

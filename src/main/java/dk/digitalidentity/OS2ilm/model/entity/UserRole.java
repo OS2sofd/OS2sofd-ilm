@@ -11,9 +11,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.util.Objects;
 
+@Audited
 @Entity
 @Getter
 @Setter
@@ -35,6 +38,7 @@ public class UserRole {
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "it_system_id")
+	@NotAudited
 	private ItSystem itSystem;
 
 	@Override

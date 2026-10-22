@@ -1,14 +1,9 @@
 package dk.digitalidentity.OS2ilm.controller.mvc;
 
-import dk.digitalidentity.OS2ilm.TestContainerConfiguration;
-import org.junit.jupiter.api.Test;
-import org.reflections.Reflections;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.stereotype.Controller;
-import org.springframework.test.web.servlet.MockMvc;
+import static org.hibernate.validator.internal.util.Contracts.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -16,10 +11,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import static org.hibernate.validator.internal.util.Contracts.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.junit.jupiter.api.Test;
+import org.reflections.Reflections;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Controller;
+import org.springframework.test.web.servlet.MockMvc;
+
+import dk.digitalidentity.OS2ilm.TestContainerConfiguration;
 
 // Tests to ensure that our MVC controllers are protected with the right annotations
 @AutoConfigureMockMvc
@@ -35,6 +36,7 @@ class ControllerSecurityTest {
         assertUrlProtected("/admin");
         assertUrlProtected("/approval");
         assertUrlProtected("/auditlog");
+        assertUrlProtected("/leader/overview");
     }
 
     @Test
@@ -66,6 +68,6 @@ class ControllerSecurityTest {
     public void assertUrlProtected(final String url) throws Exception {
         mockMvc.perform(get(url))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("http://localhost/discovery"));
+                .andExpect(redirectedUrl("/discovery"));
     }
 }

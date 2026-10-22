@@ -1,0 +1,2 @@
+ALTER TABLE business
+ADD COLUMN inherit_privileges BOOLEAN DEFAULT FALSE;

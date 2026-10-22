@@ -34,8 +34,11 @@ public class DatatableSpecBuilderUtil {
 					.toArray(Predicate[]::new);
 			Predicate cvrPredicate = criteriaBuilder.or(cvrPredicates);
 
-			// Leaders only see records awaiting their approval
-			Predicate statusPredicate = criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_APPROVAL);
+			// Leaders see records awaiting their approval, and records they have rejected
+			Predicate statusPredicate = criteriaBuilder.or(
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_APPROVAL),
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.DENIED)
+			);
 
 			return criteriaBuilder.and(cvrPredicate, statusPredicate);
 		};
@@ -49,11 +52,12 @@ public class DatatableSpecBuilderUtil {
 					.toArray(Predicate[]::new);
 			Predicate cvrPredicate = criteriaBuilder.or(cvrPredicates);
 
-			// Admins see records that need admin approval
+			// Admins see records that need admin approval, and rejected records
 			Predicate statusPredicate = criteriaBuilder.or(
 					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_APPROVAL),
 					criteriaBuilder.equal(root.get("approval"), ApproveStatus.LEADER_APPROVED),
-					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_EXTENSION_APPROVAL)
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_EXTENSION_APPROVAL),
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.DENIED)
 			);
 
 			return criteriaBuilder.and(cvrPredicate, statusPredicate);
@@ -62,18 +66,22 @@ public class DatatableSpecBuilderUtil {
 
 	public static Specification<ApprovedEmployeeView> getLeaderSpecificationWithoutCVR() {
 		return (root, query, criteriaBuilder) -> {
-			// Leaders only see records awaiting their approval (no CVR filtering)
-			return criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_APPROVAL);
+			// Leaders see records awaiting their approval, and records they have rejected (no CVR filtering)
+			return criteriaBuilder.or(
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_APPROVAL),
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.DENIED)
+			);
 		};
 	}
 
 	public static Specification<ApprovedEmployeeView> getAdminSpecificationWithoutCVR() {
 		return (root, query, criteriaBuilder) -> {
-			// Admins see records that need admin approval (no CVR filtering)
+			// Admins see records that need admin approval, and rejected records (no CVR filtering)
 			return criteriaBuilder.or(
 					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_APPROVAL),
 					criteriaBuilder.equal(root.get("approval"), ApproveStatus.LEADER_APPROVED),
-					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_EXTENSION_APPROVAL)
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.AWAITING_EXTENSION_APPROVAL),
+					criteriaBuilder.equal(root.get("approval"), ApproveStatus.DENIED)
 			);
 		};
 	}

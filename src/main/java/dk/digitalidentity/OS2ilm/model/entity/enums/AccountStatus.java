@@ -1,5 +1,8 @@
 package dk.digitalidentity.OS2ilm.model.entity.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum AccountStatus {
 	AVAILABLE("Ledig"),
 	RESERVED("Reserveret"),

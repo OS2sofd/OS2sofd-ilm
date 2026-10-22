@@ -1,0 +1,17 @@
+digraph livscyklus {
+    graph [rankdir=LR, bgcolor="transparent", nodesep=0.45, ranksep=0.55, pad=0.1];
+    node  [shape=box, style="rounded,filled", fillcolor="#eceef4", color="#525e7e", penwidth=1.2,
+           fontname="DejaVu Sans", fontsize=11, fontcolor="#1c1f26", margin="0.16,0.1"];
+    edge  [color="#525e7e", penwidth=1.2, arrowsize=0.8, fontname="DejaVu Sans", fontsize=9, fontcolor="#5b6270"];
+
+    created [label="Oprettet og\nintegreret"];
+    active  [label="Aktiv", fillcolor="#373d54", color="#373d54", fontcolor="white"];
+    expired [label="Udløbet\n(konto deaktiveret)"];
+    deleted [label="Slettet", fillcolor="white"];
+
+    created -> active  [label="startdato nås"];
+    active  -> expired [label="slutdato passeret\neller lås"];
+    expired -> active  [label="forlængelse\neller genåbning"];
+    active  -> active  [label="forlæng eller\nforkort"];
+    expired -> deleted [label="sletning"];
+}

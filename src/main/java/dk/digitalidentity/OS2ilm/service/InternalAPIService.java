@@ -1,5 +1,11 @@
 package dk.digitalidentity.OS2ilm.service;
 
+import java.util.Objects;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import dk.digitalidentity.OS2ilm.controller.api.InternalApiController;
 import dk.digitalidentity.OS2ilm.model.entity.AdUser;
 import dk.digitalidentity.OS2ilm.model.entity.Business;
@@ -7,11 +13,6 @@ import dk.digitalidentity.OS2ilm.model.entity.Employee;
 import dk.digitalidentity.OS2ilm.model.entity.OrgUnit;
 import dk.digitalidentity.OS2ilm.model.exception.NotCommittedException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -20,8 +21,7 @@ public class InternalAPIService {
 	private final AdUserService adUserService;
 	private final OrgUnitService orgUnitService;
 	private final EmployeeService employeeService;
-	private final SofdService sofdService;
-
+	private final QueueHelperService queueHelperService;
 
 	@Transactional(rollbackFor = NotCommittedException.class)
 	public String updateEmployee(Employee employee, InternalApiController.EditEmployeeRecord editEmployeeRecord) {
@@ -104,7 +104,7 @@ public class InternalAPIService {
 
 		employeeService.save(employee);
 		if (StringUtils.hasText(employee.getCpr())) {
-			sofdService.sofdCreateAndUpdateHelper(employee);
+			queueHelperService.sofdHelper(employee.getId());
 		}
 
 		return "The following changes have been made in the DB: \n" + changelog;
